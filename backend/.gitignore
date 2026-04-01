@@ -1,0 +1,63 @@
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+
+# Distribution / packaging
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# Virtual environments
+venv/
+env/
+ENV/
+.venv
+
+# Environment variables
+.env
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Testing
+.pytest_cache/
+.coverage
+htmlcov/
+.hypothesis/
+
+# Ignore the image datasets
+dataset/
+dataset_augmented/
+
+# Ignore the test images
+test_photo.jpg
+group_photo.jpg
+group_photo_analyzed.jpg
+*.jpeg
+*.jpg
+*.png
+
+# Attendance records (optional - uncomment if you don't want to track these)
+# Attendance Records/
+
+# Model checkpoints (optional - keep trained_face_brain.pth tracked)
+# *.pth

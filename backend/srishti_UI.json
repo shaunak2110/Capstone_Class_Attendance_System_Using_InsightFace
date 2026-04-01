@@ -1,0 +1,15 @@
+{
+  "faces_detected": 2,
+  "results": [
+    {
+      "student_id": "person_4_ashlesha",
+      "distance": 0.55,
+      "bounding_box": [120, 45, 200, 180] 
+    },
+    {
+      "student_id": "Unknown",
+      "distance": 1.25,
+      "bounding_box": [300, 50, 380, 190]
+    }
+  ]
+}

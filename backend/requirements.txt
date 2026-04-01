@@ -1,0 +1,14 @@
+torch
+torchvision
+facenet-pytorch
+numpy
+Pillow
+opencv-python
+fastapi
+uvicorn[standard]
+pyodbc
+bcrypt
+hypothesis
+python-dotenv
+pytest
+email-validator
