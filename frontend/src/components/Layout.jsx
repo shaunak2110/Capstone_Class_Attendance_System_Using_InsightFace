@@ -6,13 +6,14 @@ import { LogOut, User, Shield } from 'lucide-react';
 export default function Layout() {
   const navigate = useNavigate();
 
-  const role = localStorage.getItem('role');
-  const name = localStorage.getItem('name');
+  const privilegeLevel = localStorage.getItem('privilege_level');
+  const username = localStorage.getItem('username');
+
+  const roleLabel = privilegeLevel === '1' ? 'Super Admin' : privilegeLevel === '2' ? 'Admin' : 'Faculty';
+  const avatarLetter = privilegeLevel === '1' ? 'SA' : privilegeLevel === '2' ? 'A' : 'F';
 
   const handleLogout = () => {
-    localStorage.removeItem('token');
-    localStorage.removeItem('role');
-    localStorage.removeItem('name');
+    localStorage.clear();
     navigate('/login');
   };
 
@@ -47,18 +48,20 @@ export default function Layout() {
             <div className="flex items-center gap-4">
               <div className="text-right pr-3 border-r border-slate-200">
                 <div className="text-sm font-semibold text-slate-800">
-                  {name || 'User'}
+                  {username || 'User'}
                 </div>
                 <div className="text-xs text-slate-500 capitalize font-medium flex items-center gap-1">
-                  {role === 'admin' ? <Shield className="h-3 w-3" /> : <User className="h-3 w-3" />}
-                  {role || 'Role'}
+                  {privilegeLevel === '2' || privilegeLevel === '1' ? <Shield className="h-3 w-3" /> : <User className="h-3 w-3" />}
+                  {roleLabel}
                 </div>
               </div>
 
-              <Avatar className="h-10 w-10 bg-gradient-to-br from-indigo-500 to-purple-600 shadow-md">
-                <AvatarFallback className="text-white font-bold text-sm">
-                  {role === 'admin' ? 'A' : 'F'}
-                </AvatarFallback>
+              <Avatar
+                className="h-10 w-10 bg-gradient-to-br from-indigo-500 to-purple-600 shadow-md cursor-pointer hover:ring-2 hover:ring-indigo-400 transition-all"
+                onClick={() => navigate('/profile')}
+                title="View Profile"
+              >
+                <AvatarFallback className="text-white font-bold text-sm">{avatarLetter}</AvatarFallback>
               </Avatar>
 
               <Button 

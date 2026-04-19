@@ -5,11 +5,15 @@ import Results from './pages/Results';
 import ProtectedRoute from './components/ProtectedRoute';
 import Layout from './components/Layout';
 import AdminStudents from './pages/AdminStudents';
+import AdminDashboard from './pages/AdminDashboard';
+import AdminRecords from './pages/AdminRecords';
 import SuperadminDashboard from './pages/SuperadminDashboard';
+import Profile from './pages/Profile';
 
 function RoleBasedRedirect() {
   const role = localStorage.getItem('privilege_level');
   if (role === '1') return <Navigate to="/superadmin" replace />;
+  if (role === '2') return <Navigate to="/admin-dashboard" replace />;
   return <Navigate to="/dashboard" replace />;
 }
 
@@ -45,6 +49,21 @@ function App() {
               <AdminStudents />
             </ProtectedRoute>
           } />
+          
+          <Route path="admin-dashboard" element={
+            <ProtectedRoute minPrivilege={2}>
+              <AdminDashboard />
+            </ProtectedRoute>
+          } />
+
+          <Route path="admin-records" element={
+            <ProtectedRoute minPrivilege={2}>
+              <AdminRecords />
+            </ProtectedRoute>
+          } />
+
+          {/* Profile — all roles */}
+          <Route path="profile" element={<Profile />} />
         </Route>
 
         {/* Unauthorized fallback */}

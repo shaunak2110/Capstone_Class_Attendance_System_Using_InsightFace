@@ -36,6 +36,19 @@ class LectureResponse(BaseModel):
     panel: str
     lecture_datetime: dt.datetime
     attendance_status: str
+    year: Optional[str] = None
+    specialisation: Optional[str] = None
+    course_code: Optional[str] = None
+    lecorlab: Optional[str] = None
+
+
+class EnrolledStudentResponse(BaseModel):
+    """
+    Response model for enrolled students in a lecture's target group.
+    """
+    prn: str
+    name: str
+    rollno: str
 
 
 class IdentifiedStudent(BaseModel):
@@ -71,9 +84,11 @@ class MarkAttendanceRequest(BaseModel):
     Attributes:
         lec_id: ID of the lecture for which attendance is being marked
         images: List of base64-encoded image strings
+        lecture_datetime: Optional overridden timestamp specifying exactly when this class actually took place
     """
     lec_id: int
     images: List[str]
+    lecture_datetime: Optional[dt.datetime] = None
 
 
 class MarkAttendanceResponse(BaseModel):
@@ -105,6 +120,10 @@ class FaceResolution(BaseModel):
     prn: Optional[str] = None
     name: Optional[str] = None
     panel: Optional[str] = None
+    year: Optional[str] = None
+    course: Optional[str] = None
+    specialisation: Optional[str] = None
+    rollno: Optional[str] = None
 
 
 class ResolveFacesRequest(BaseModel):
@@ -249,7 +268,7 @@ async def get_user_lectures(
     try:
         # Query Lecture_Master for all lectures belonging to the user
         query = """
-            SELECT lec_id, lec_name, panel, lecture_datetime, attendance_status
+            SELECT lec_id, lec_name, panel, lecture_datetime, attendance_status, year, specialisation, course_code, lecorlab
             FROM Lecture_Master
             WHERE user_id = ?
             ORDER BY lecture_datetime DESC
@@ -272,7 +291,11 @@ async def get_user_lectures(
                 lec_name=row.lec_name,
                 panel=row.panel,
                 lecture_datetime=row.lecture_datetime,
-                attendance_status=row.attendance_status
+                attendance_status=row.attendance_status,
+                year=getattr(row, 'year', None),
+                specialisation=getattr(row, 'specialisation', None),
+                course_code=getattr(row, 'course_code', None),
+                lecorlab=getattr(row, 'lecorlab', None)
             ))
         
         return lectures
@@ -292,6 +315,97 @@ async def get_user_lectures(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Unexpected error while retrieving lectures: {str(e)}"
         )
+
+
+@router.get("/enrolled-students/{lec_id}", response_model=List[EnrolledStudentResponse])
+async def get_enrolled_students(
+    lec_id: int,
+    _: int = Depends(require_privilege(3))
+):
+    """
+    Retrieve all enrolled students for a given lecture based on year, specialisation, and panel.
+    """
+    try:
+        query_lec = "SELECT year, specialisation, panel FROM Lecture_Master WHERE lec_id = ?"
+        lec_result = execute_query(query_lec, (lec_id,), fetch=True)
+        if not lec_result or len(lec_result) == 0:
+            raise HTTPException(status_code=404, detail="Lecture not found")
+        lec = lec_result[0]
+        
+        query_stu = "SELECT prn, name, rollno FROM Student_Master WHERE year = ? AND specialisation = ? AND panel = ?"
+        students = execute_query(query_stu, (lec.year, lec.specialisation, lec.panel), fetch=True)
+        
+        if not students:
+            return []
+            
+        return [EnrolledStudentResponse(
+            prn=s.prn,
+            name=s.name,
+            rollno=getattr(s, 'rollno', 'N/A') or 'N/A'
+        ) for s in students]
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.get("/attendance-records/{lec_id}")
+async def get_attendance_records(
+    lec_id: int,
+    date_from: Optional[str] = None,
+    date_to: Optional[str] = None,
+    _: int = Depends(require_privilege(3))
+):
+    """
+    Retrieve attendance records for a specific lecture with optional date range filter.
+    Returns student name, rollno, PRN, status, and the lecture datetime.
+    """
+    try:
+        query = """
+            SELECT
+                sm.name,
+                sm.rollno,
+                ar.prn,
+                ar.status,
+                lm.lecture_datetime,
+                lm.lec_name
+            FROM Attendance_Record ar
+            JOIN Student_Master sm ON ar.prn = sm.prn
+            JOIN Lecture_Master lm ON ar.lec_id = lm.lec_id
+            WHERE ar.lec_id = ?
+        """
+        params = [lec_id]
+
+        if date_from:
+            query += " AND lm.lecture_datetime >= ?"
+            params.append(date_from)
+        if date_to:
+            query += " AND lm.lecture_datetime <= ?"
+            params.append(date_to + " 23:59:59")
+
+        query += " ORDER BY lm.lecture_datetime DESC, sm.rollno ASC"
+
+        rows = execute_query(query, tuple(params), fetch=True)
+        if not rows:
+            return []
+
+        return [
+            {
+                "name": row.name,
+                "rollno": getattr(row, 'rollno', 'N/A') or 'N/A',
+                "prn": row.prn,
+                "status": row.status,
+                "lecture_datetime": str(row.lecture_datetime) if row.lecture_datetime else None,
+                "lec_name": row.lec_name,
+            }
+            for row in rows
+        ]
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
 
 
 @router.post("/mark-attendance", response_model=MarkAttendanceResponse)
@@ -365,6 +479,11 @@ async def mark_attendance(
                 status_code=status.HTTP_403_FORBIDDEN,
                 detail=f"Lecture {request.lec_id} does not belong to user {user_id}"
             )
+        
+        # Optional: Update lecture datetime if overridden by teacher
+        if request.lecture_datetime:
+            update_dt_query = "UPDATE Lecture_Master SET lecture_datetime = ? WHERE lec_id = ?"
+            execute_query(update_dt_query, (request.lecture_datetime, request.lec_id), fetch=False)
         
         # Step 2: Get inference engine instance
         inference_engine = get_inference_engine()
@@ -600,10 +719,18 @@ async def resolve_faces(
                 
                 # Insert new student into Student_Master
                 insert_student_query = """
-                    INSERT INTO Student_Master (prn, name, panel)
-                    VALUES (?, ?, ?)
+                    INSERT INTO Student_Master (prn, name, year, course, specialisation, rollno, panel)
+                    VALUES (?, ?, ?, ?, ?, ?, ?)
                 """
-                execute_query(insert_student_query, (prn, name, panel), fetch=False)
+                execute_query(insert_student_query, (
+                    prn, 
+                    name, 
+                    resolution.year or 'N/A', 
+                    resolution.course or 'N/A', 
+                    resolution.specialisation or 'N/A', 
+                    resolution.rollno or 'N/A', 
+                    panel
+                ), fetch=False)
                 
                 # Insert into Attendance_Record
                 insert_attendance_query = """

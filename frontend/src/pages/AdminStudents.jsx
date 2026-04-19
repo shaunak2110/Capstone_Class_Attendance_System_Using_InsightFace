@@ -1,4 +1,6 @@
 import { useState, useRef } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { ArrowLeft } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -17,8 +19,13 @@ function fileToBase64(file) {
 }
 
 export default function AdminStudents() {
+  const navigate = useNavigate();
   const [prn, setPrn] = useState('');
   const [name, setName] = useState('');
+  const [year, setYear] = useState('');
+  const [course, setCourse] = useState('');
+  const [specialisation, setSpecialisation] = useState('');
+  const [rollno, setRollno] = useState('');
   const [panel, setPanel] = useState('');
   const [images, setImages] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -45,11 +52,15 @@ export default function AdminStudents() {
     setLoading(true);
     try {
       const base64Images = await Promise.all(images.map(fileToBase64));
-      const data = await enrollStudent(prn, name, panel, base64Images);
+      const data = await enrollStudent(prn, name, year, course, specialisation, rollno, panel, base64Images);
       setSuccess({ name, prn: data.prn ?? prn, message: data.message });
       // Reset form
       setPrn('');
       setName('');
+      setYear('');
+      setCourse('');
+      setSpecialisation('');
+      setRollno('');
       setPanel('');
       setImages([]);
       if (fileInputRef.current) fileInputRef.current.value = '';
@@ -65,10 +76,15 @@ export default function AdminStudents() {
   };
 
   return (
-    <div className="space-y-6">
-      <h2 className="text-3xl font-bold">Manage Students</h2>
+    <div className="space-y-6 pb-10">
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+        <h2 className="text-3xl font-bold">Manage Students</h2>
+        <Button variant="outline" onClick={() => navigate('/admin-dashboard')}>
+          <ArrowLeft className="mr-2 h-4 w-4" /> Back to Dashboard
+        </Button>
+      </div>
 
-      <Card className="max-w-lg">
+      <Card className="max-w-xl shadow-xl border-0">
         <CardHeader>
           <CardTitle>Enroll New Student</CardTitle>
         </CardHeader>
@@ -113,12 +129,34 @@ export default function AdminStudents() {
               />
             </div>
 
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="year">Year</Label>
+                <Input id="year" type="text" placeholder="e.g. FY" value={year} onChange={(e) => setYear(e.target.value)} required disabled={loading} />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="course">Course</Label>
+                <Input id="course" type="text" placeholder="e.g. B.Tech CS" value={course} onChange={(e) => setCourse(e.target.value)} required disabled={loading} />
+              </div>
+            </div>
+            
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="specialisation">Specialisation</Label>
+                <Input id="specialisation" type="text" placeholder="e.g. CSE or AIDS" value={specialisation} onChange={(e) => setSpecialisation(e.target.value)} required disabled={loading} />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="rollno">Roll No</Label>
+                <Input id="rollno" type="text" placeholder="e.g. 15" value={rollno} onChange={(e) => setRollno(e.target.value)} required disabled={loading} />
+              </div>
+            </div>
+
             <div className="space-y-2">
               <Label htmlFor="panel">Panel</Label>
               <Input
                 id="panel"
                 type="text"
-                placeholder="e.g. A1"
+                placeholder="e.g. A"
                 value={panel}
                 onChange={(e) => setPanel(e.target.value)}
                 required

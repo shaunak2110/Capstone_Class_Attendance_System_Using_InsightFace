@@ -26,7 +26,13 @@ export default function Login() {
       localStorage.setItem('token', 'authenticated');
       localStorage.setItem('role', role);
       localStorage.setItem('name', data.username);
-      navigate('/dashboard');
+      if (data.privilege_level === 1) {
+        navigate('/superadmin');
+      } else if (data.privilege_level === 2) {
+        navigate('/admin-dashboard');
+      } else {
+        navigate('/dashboard');
+      }
     } catch (err) {
       const msg = err.response?.data?.detail ?? 'Invalid credentials. Please try again.';
       setError(msg);

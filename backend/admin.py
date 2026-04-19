@@ -38,9 +38,9 @@ class CreateTeacherResponse(BaseModel):
 
 
 class ScheduleLectureRequest(BaseModel):
-    user_id: int
-    school: str
-    department: str
+    username: str
+    year: str
+    specialisation: str
     lecorlab: str
     panel: str
     lec_name: str
@@ -53,9 +53,41 @@ class LectureResponse(BaseModel):
     message: str
 
 
+class LectureRecordResponse(BaseModel):
+    lec_id: int
+    username: str
+    year: str
+    specialisation: str
+    lecorlab: str
+    panel: str
+    lec_name: str
+    course_code: str
+    lecture_datetime: dt.datetime
+    attendance_status: str
+
+
+class StudentAttendanceAnalytic(BaseModel):
+    prn: str
+    name: str
+    present: int
+    total: int
+
+
+class AnalyticsDataResponse(BaseModel):
+    totalLectures: int
+    students: List[StudentAttendanceAnalytic]
+    overallPercentage: int
+    subject: str
+    panel: str
+
+
 class EnrollStudentRequest(BaseModel):
     prn: str
     name: str
+    year: str
+    course: str
+    specialisation: str
+    rollno: str
     panel: str
     images: List[str]
 
@@ -153,14 +185,14 @@ async def schedule_lecture(
 
         cursor.execute("""
             INSERT INTO Lecture_Master
-            (user_id, school, department, lecorlab, panel,
+            (username, year, specialisation, lecorlab, panel,
              lec_name, course_code, lecture_datetime, attendance_status)
             OUTPUT INSERTED.lec_id
             VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'N')
         """, (
-            request.user_id,
-            request.school,
-            request.department,
+            request.username,
+            request.year,
+            request.specialisation,
             request.lecorlab,
             request.panel,
             request.lec_name,
@@ -182,6 +214,131 @@ async def schedule_lecture(
             connection.rollback()
         raise HTTPException(status_code=500, detail=str(e))
 
+    finally:
+        if cursor:
+            cursor.close()
+        if connection:
+            connection.close()
+
+
+@router.get("/lectures", response_model=List[LectureRecordResponse])
+async def get_all_lectures(_: int = Depends(require_privilege(2))):
+    connection = None
+    cursor = None
+    try:
+        connection = get_db_connection()
+        cursor = connection.cursor()
+        cursor.execute("""
+            SELECT lec_id, username, year, specialisation, lecorlab, panel, lec_name, course_code, lecture_datetime, attendance_status
+            FROM Lecture_Master
+            ORDER BY lecture_datetime DESC
+        """)
+        columns = [column[0] for column in cursor.description]
+        results = []
+        for row in cursor.fetchall():
+            results.append(dict(zip(columns, row)))
+        
+        if not results:
+            return []
+            
+        return results
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+    finally:
+        if cursor:
+            cursor.close()
+        if connection:
+            connection.close()
+
+
+@router.get("/attendance-analytics", response_model=AnalyticsDataResponse)
+async def get_attendance_analytics(
+    year: Optional[str] = None,
+    course_code: Optional[str] = None,
+    panel: Optional[str] = None,
+    username: Optional[str] = None,
+    start_date: Optional[str] = None,
+    end_date: Optional[str] = None,
+    _: int = Depends(require_privilege(2))
+):
+    connection = None
+    cursor = None
+    try:
+        connection = get_db_connection()
+        cursor = connection.cursor()
+
+        lec_query = "SELECT lec_id FROM Lecture_Master WHERE attendance_status = 'Y'"
+        params = []
+        if year:
+            lec_query += " AND year = ?"
+            params.append(year)
+        if course_code:
+            lec_query += " AND course_code = ?"
+            params.append(course_code)
+        if panel:
+            lec_query += " AND panel = ?"
+            params.append(panel)
+        if username:
+            lec_query += " AND username = ?"
+            params.append(username)
+        if start_date:
+            lec_query += " AND lecture_datetime >= ?"
+            params.append(start_date)
+        if end_date:
+            lec_query += " AND lecture_datetime <= ?"
+            params.append(end_date)
+            
+        cursor.execute(lec_query, tuple(params))
+        lec_rows = cursor.fetchall()
+        lec_ids = [row[0] for row in lec_rows]
+        total_lectures = len(lec_ids)
+
+        if total_lectures == 0:
+            return AnalyticsDataResponse(totalLectures=0, students=[], overallPercentage=0, subject=course_code or "All Subjects", panel=panel or "All Panels")
+
+        stu_query = "SELECT prn, name FROM Student_Master WHERE 1=1"
+        stu_params = []
+        if panel:
+            stu_query += " AND panel = ?"
+            stu_params.append(panel)
+        if year:
+            stu_query += " AND year = ?"
+            stu_params.append(year)
+            
+        cursor.execute(stu_query, tuple(stu_params))
+        students = cursor.fetchall()
+        
+        if not students:
+            return AnalyticsDataResponse(totalLectures=total_lectures, students=[], overallPercentage=0, subject=course_code or "All Subjects", panel=panel or "All Panels")
+
+        placeholders = ",".join("?" * len(lec_ids))
+        att_query = f"SELECT prn, COUNT(*) as present_count FROM Attendance_Record WHERE status = 'Present' AND lec_id IN ({placeholders}) GROUP BY prn"
+        cursor.execute(att_query, tuple(lec_ids))
+        att_counts = {row[0]: row[1] for row in cursor.fetchall()}
+
+        student_analytics = []
+        overall_present = 0
+        overall_total = len(students) * total_lectures
+
+        for row in students:
+            prn = row[0]
+            name = row[1]
+            p_count = att_counts.get(prn, 0)
+            overall_present += p_count
+            student_analytics.append(StudentAttendanceAnalytic(prn=prn, name=name, present=p_count, total=total_lectures))
+
+        overall_percentage = round((overall_present / overall_total) * 100) if overall_total > 0 else 0
+
+        return AnalyticsDataResponse(
+            totalLectures=total_lectures,
+            students=student_analytics,
+            overallPercentage=overall_percentage,
+            subject=course_code or "All Subjects",
+            panel=panel or "All Panels"
+        )
+        
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
     finally:
         if cursor:
             cursor.close()
@@ -237,15 +394,15 @@ async def enroll_student(
         if existing:
             # Update existing student record
             cursor.execute("""
-                UPDATE Student_Master SET name = ?, panel = ?
+                UPDATE Student_Master SET name = ?, year = ?, course = ?, specialisation = ?, rollno = ?, panel = ?
                 WHERE prn = ?
-            """, (request.name, request.panel, request.prn))
+            """, (request.name, request.year, request.course, request.specialisation, request.rollno, request.panel, request.prn))
         else:
             # Insert new student
             cursor.execute("""
-                INSERT INTO Student_Master (prn, name, panel)
-                VALUES (?, ?, ?)
-            """, (request.prn, request.name, request.panel))
+                INSERT INTO Student_Master (prn, name, year, course, specialisation, rollno, panel)
+                VALUES (?, ?, ?, ?, ?, ?, ?)
+            """, (request.prn, request.name, request.year, request.course, request.specialisation, request.rollno, request.panel))
 
         connection.commit()
 
