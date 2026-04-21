@@ -94,60 +94,60 @@ export default function AdminDashboard() {
             <CardContent className="pt-6">
               {teacherStatus.error && <Alert variant="destructive" className="mb-4 bg-red-500/10 border border-red-500/20 text-red-400"><AlertDescription>{teacherStatus.error}</AlertDescription></Alert>}
               {teacherStatus.success && <Alert className="mb-4 bg-emerald-500/10 border border-emerald-500/20 text-emerald-400"><AlertDescription>{teacherStatus.success}</AlertDescription></Alert>}
-              
+
               <form onSubmit={handleCreateTeacher} className="space-y-4" autoComplete="off">
-                 {/* Fake inputs to thwart browser autofill */}
-                 <input type="text" name="fakeusernameremembered" style={{display: 'none'}} />
-                 <input type="password" name="fakepasswordremembered" style={{display: 'none'}} />
-                
-                 <div className="grid grid-cols-2 gap-4">
-                   <div className="space-y-1.5 col-span-2 sm:col-span-1">
-                     <Label className="text-slate-300 text-xs uppercase tracking-wider">Full Name</Label>
-                     <Input name="name" type="text" placeholder="John Doe" value={teacherForm.name} onChange={handleTeacherChange} required autoComplete="new-password"
-                       className="bg-black/20 border-white/10 text-white focus-visible:ring-teal-500 placeholder:text-slate-600 h-10" />
-                   </div>
-                   <div className="space-y-1.5 col-span-2 sm:col-span-1">
-                     <Label className="text-slate-300 text-xs uppercase tracking-wider">Username</Label>
-                     <Input name="username" type="text" placeholder="johndoe" value={teacherForm.username} onChange={handleTeacherChange} required autoComplete="new-password"
-                       className="bg-black/20 border-white/10 text-white focus-visible:ring-teal-500 placeholder:text-slate-600 h-10" />
-                   </div>
-                 </div>
+                {/* Fake inputs to thwart browser autofill */}
+                <input type="text" name="fakeusernameremembered" style={{ display: 'none' }} />
+                <input type="password" name="fakepasswordremembered" style={{ display: 'none' }} />
 
-                 <div className="grid grid-cols-2 gap-4">
-                   <div className="space-y-1.5 col-span-2 sm:col-span-1">
-                     <Label className="text-slate-300 text-xs uppercase tracking-wider">Email Address</Label>
-                     <Input name="email_id" type="email" placeholder="john@university.edu" value={teacherForm.email_id} onChange={handleTeacherChange} required autoComplete="new-password"
-                       className="bg-black/20 border-white/10 text-white focus-visible:ring-teal-500 placeholder:text-slate-600 h-10" />
-                   </div>
-                   <div className="space-y-1.5 col-span-2 sm:col-span-1">
-                     <Label className="text-slate-300 text-xs uppercase tracking-wider">Mobile Number</Label>
-                     <Input name="mob" type="text" placeholder="+1 234 567 890" value={teacherForm.mob} onChange={handleTeacherChange} required autoComplete="new-password"
-                       className="bg-black/20 border-white/10 text-white focus-visible:ring-teal-500 placeholder:text-slate-600 h-10" />
-                   </div>
-                 </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-1.5 col-span-2 sm:col-span-1">
+                    <Label className="text-slate-300 text-xs uppercase tracking-wider">Full Name</Label>
+                    <Input name="name" type="text" placeholder="John Doe" value={teacherForm.name} onChange={handleTeacherChange} required autoComplete="new-password"
+                      className="bg-black/20 border-white/10 text-white focus-visible:ring-teal-500 placeholder:text-slate-600 h-10" />
+                  </div>
+                  <div className="space-y-1.5 col-span-2 sm:col-span-1">
+                    <Label className="text-slate-300 text-xs uppercase tracking-wider">Username</Label>
+                    <Input name="username" type="text" placeholder="johndoe" value={teacherForm.username} onChange={handleTeacherChange} required autoComplete="new-password"
+                      className="bg-black/20 border-white/10 text-white focus-visible:ring-teal-500 placeholder:text-slate-600 h-10" />
+                  </div>
+                </div>
 
-                 <div className="space-y-1.5">
-                   <Label className="text-slate-300 text-xs uppercase tracking-wider">Password</Label>
-                   <Input name="password" type="password" placeholder="••••••••" value={teacherForm.password} onChange={handleTeacherChange} required autoComplete="new-password"
-                     className="bg-black/20 border-white/10 text-white focus-visible:ring-teal-500 placeholder:text-slate-600 h-10" />
-                 </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-1.5 col-span-2 sm:col-span-1">
+                    <Label className="text-slate-300 text-xs uppercase tracking-wider">Email Address</Label>
+                    <Input name="email_id" type="email" placeholder="john@university.edu" value={teacherForm.email_id} onChange={handleTeacherChange} required autoComplete="new-password"
+                      className="bg-black/20 border-white/10 text-white focus-visible:ring-teal-500 placeholder:text-slate-600 h-10" />
+                  </div>
+                  <div className="space-y-1.5 col-span-2 sm:col-span-1">
+                    <Label className="text-slate-300 text-xs uppercase tracking-wider">Mobile Number</Label>
+                    <Input name="mob" type="text" placeholder="+1 234 567 890" value={teacherForm.mob} onChange={handleTeacherChange} required autoComplete="new-password"
+                      className="bg-black/20 border-white/10 text-white focus-visible:ring-teal-500 placeholder:text-slate-600 h-10" />
+                  </div>
+                </div>
 
-                 <div className="grid grid-cols-2 gap-4">
-                   <div className="space-y-1.5 col-span-2 sm:col-span-1">
-                     <Label className="text-slate-300 text-xs uppercase tracking-wider">School</Label>
-                     <Input name="school" type="text" placeholder="Engineering" value={teacherForm.school} onChange={handleTeacherChange} required autoComplete="new-password"
-                       className="bg-black/20 border-white/10 text-white focus-visible:ring-teal-500 placeholder:text-slate-600 h-10" />
-                   </div>
-                   <div className="space-y-1.5 col-span-2 sm:col-span-1">
-                     <Label className="text-slate-300 text-xs uppercase tracking-wider">Department</Label>
-                     <Input name="department" type="text" placeholder="Computer Science" value={teacherForm.department} onChange={handleTeacherChange} required autoComplete="new-password"
-                       className="bg-black/20 border-white/10 text-white focus-visible:ring-teal-500 placeholder:text-slate-600 h-10" />
-                   </div>
-                 </div>
+                <div className="space-y-1.5">
+                  <Label className="text-slate-300 text-xs uppercase tracking-wider">Password</Label>
+                  <Input name="password" type="password" placeholder="••••••••" value={teacherForm.password} onChange={handleTeacherChange} required autoComplete="new-password"
+                    className="bg-black/20 border-white/10 text-white focus-visible:ring-teal-500 placeholder:text-slate-600 h-10" />
+                </div>
 
-                 <Button type="submit" disabled={teacherStatus.loading} className="w-full bg-teal-600 hover:bg-teal-500 text-white mt-2 border border-teal-500/50 shadow-[0_0_15px_rgba(20,184,166,0.2)] transition-all duration-300 h-11">
-                   <Plus className="mr-2 h-4 w-4" /> {teacherStatus.loading ? 'Creating...' : 'Create Faculty Profile'}
-                 </Button>
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-1.5 col-span-2 sm:col-span-1">
+                    <Label className="text-slate-300 text-xs uppercase tracking-wider">School</Label>
+                    <Input name="school" type="text" placeholder="Engineering" value={teacherForm.school} onChange={handleTeacherChange} required autoComplete="new-password"
+                      className="bg-black/20 border-white/10 text-white focus-visible:ring-teal-500 placeholder:text-slate-600 h-10" />
+                  </div>
+                  <div className="space-y-1.5 col-span-2 sm:col-span-1">
+                    <Label className="text-slate-300 text-xs uppercase tracking-wider">Department</Label>
+                    <Input name="department" type="text" placeholder="Computer Science" value={teacherForm.department} onChange={handleTeacherChange} required autoComplete="new-password"
+                      className="bg-black/20 border-white/10 text-white focus-visible:ring-teal-500 placeholder:text-slate-600 h-10" />
+                  </div>
+                </div>
+
+                <Button type="submit" disabled={teacherStatus.loading} className="w-full bg-teal-600 hover:bg-teal-500 text-white mt-2 border border-teal-500/50 shadow-[0_0_15px_rgba(20,184,166,0.2)] transition-all duration-300 h-11">
+                  <Plus className="mr-2 h-4 w-4" /> {teacherStatus.loading ? 'Creating...' : 'Create Faculty Profile'}
+                </Button>
               </form>
             </CardContent>
           </Card>
@@ -167,66 +167,66 @@ export default function AdminDashboard() {
             <CardContent className="pt-6">
               {lectureStatus.error && <Alert variant="destructive" className="mb-4 bg-red-500/10 border border-red-500/20 text-red-400"><AlertDescription>{lectureStatus.error}</AlertDescription></Alert>}
               {lectureStatus.success && <Alert className="mb-4 bg-emerald-500/10 border border-emerald-500/20 text-emerald-400"><AlertDescription>{lectureStatus.success}</AlertDescription></Alert>}
-              
+
               <form onSubmit={handleScheduleLecture} className="space-y-4" autoComplete="off">
-                 
-                 <div className="space-y-1.5">
-                   <Label className="text-slate-300 text-xs uppercase tracking-wider">Teacher Username</Label>
-                   <Input name="username" type="text" placeholder="faculty username" value={lectureForm.username} onChange={handleLectureChange} required autoComplete="new-password"
-                     className="bg-black/20 border-white/10 text-white focus-visible:ring-indigo-500 placeholder:text-slate-600 h-10" />
-                 </div>
 
-                 <div className="grid grid-cols-2 gap-4">
-                   <div className="space-y-1.5 col-span-2 sm:col-span-1">
-                     <Label className="text-slate-300 text-xs uppercase tracking-wider">Academic Year</Label>
-                     <Input name="year" type="text" placeholder="e.g. 1st Year" value={lectureForm.year} onChange={handleLectureChange} required autoComplete="new-password"
-                       className="bg-black/20 border-white/10 text-white focus-visible:ring-indigo-500 placeholder:text-slate-600 h-10" />
-                   </div>
-                   <div className="space-y-1.5 col-span-2 sm:col-span-1">
-                     <Label className="text-slate-300 text-xs uppercase tracking-wider">Specialisation</Label>
-                     <Input name="specialisation" type="text" placeholder="e.g. CSE, AIDS" value={lectureForm.specialisation} onChange={handleLectureChange} required autoComplete="new-password"
-                       className="bg-black/20 border-white/10 text-white focus-visible:ring-indigo-500 placeholder:text-slate-600 h-10" />
-                   </div>
-                 </div>
+                <div className="space-y-1.5">
+                  <Label className="text-slate-300 text-xs uppercase tracking-wider">Teacher Username</Label>
+                  <Input name="username" type="text" placeholder="faculty username" value={lectureForm.username} onChange={handleLectureChange} required autoComplete="new-password"
+                    className="bg-black/20 border-white/10 text-white focus-visible:ring-indigo-500 placeholder:text-slate-600 h-10" />
+                </div>
 
-                 <div className="grid grid-cols-2 gap-4">
-                   <div className="space-y-1.5 col-span-2 sm:col-span-1">
-                     <Label className="text-slate-300 text-xs uppercase tracking-wider">Session Type</Label>
-                     <select name="lecorlab" value={lectureForm.lecorlab} onChange={handleLectureChange} required 
-                       className="w-full bg-black/20 border border-white/10 text-slate-200 rounded-md focus:ring-1 focus:ring-indigo-500 outline-none h-10 px-3">
-                       <option value="lec" className="bg-slate-900">Lecture</option>
-                       <option value="lab" className="bg-slate-900">Lab</option>
-                     </select>
-                   </div>
-                   <div className="space-y-1.5 col-span-2 sm:col-span-1">
-                     <Label className="text-slate-300 text-xs uppercase tracking-wider">Panel Group</Label>
-                     <Input name="panel" type="text" placeholder="e.g. H" value={lectureForm.panel} onChange={handleLectureChange} required autoComplete="new-password"
-                       className="bg-black/20 border-white/10 text-white focus-visible:ring-indigo-500 placeholder:text-slate-600 h-10" />
-                   </div>
-                 </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-1.5 col-span-2 sm:col-span-1">
+                    <Label className="text-slate-300 text-xs uppercase tracking-wider">Academic Year</Label>
+                    <Input name="year" type="text" placeholder="e.g. 1st Year" value={lectureForm.year} onChange={handleLectureChange} required autoComplete="new-password"
+                      className="bg-black/20 border-white/10 text-white focus-visible:ring-indigo-500 placeholder:text-slate-600 h-10" />
+                  </div>
+                  <div className="space-y-1.5 col-span-2 sm:col-span-1">
+                    <Label className="text-slate-300 text-xs uppercase tracking-wider">Specialisation</Label>
+                    <Input name="specialisation" type="text" placeholder="e.g. CSE, AIDS" value={lectureForm.specialisation} onChange={handleLectureChange} required autoComplete="new-password"
+                      className="bg-black/20 border-white/10 text-white focus-visible:ring-indigo-500 placeholder:text-slate-600 h-10" />
+                  </div>
+                </div>
 
-                 <div className="grid grid-cols-2 gap-4">
-                   <div className="space-y-1.5 col-span-2 sm:col-span-1">
-                     <Label className="text-slate-300 text-xs uppercase tracking-wider">Lecture Name</Label>
-                     <Input name="lec_name" type="text" placeholder="Data Structures" value={lectureForm.lec_name} onChange={handleLectureChange} required autoComplete="new-password"
-                       className="bg-black/20 border-white/10 text-white focus-visible:ring-indigo-500 placeholder:text-slate-600 h-10" />
-                   </div>
-                   <div className="space-y-1.5 col-span-2 sm:col-span-1">
-                     <Label className="text-slate-300 text-xs uppercase tracking-wider">Course Code</Label>
-                     <Input name="course_code" type="text" placeholder="CS201" value={lectureForm.course_code} onChange={handleLectureChange} required autoComplete="new-password"
-                       className="bg-black/20 border-white/10 text-white focus-visible:ring-indigo-500 placeholder:text-slate-600 h-10" />
-                   </div>
-                 </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-1.5 col-span-2 sm:col-span-1">
+                    <Label className="text-slate-300 text-xs uppercase tracking-wider">Session Type</Label>
+                    <select name="lecorlab" value={lectureForm.lecorlab} onChange={handleLectureChange} required
+                      className="w-full bg-black/20 border border-white/10 text-slate-200 rounded-md focus:ring-1 focus:ring-indigo-500 outline-none h-10 px-3">
+                      <option value="lec" className="bg-slate-900">Lecture</option>
+                      <option value="lab" className="bg-slate-900">Lab</option>
+                    </select>
+                  </div>
+                  <div className="space-y-1.5 col-span-2 sm:col-span-1">
+                    <Label className="text-slate-300 text-xs uppercase tracking-wider">Panel Group</Label>
+                    <Input name="panel" type="text" placeholder="e.g. H" value={lectureForm.panel} onChange={handleLectureChange} required autoComplete="new-password"
+                      className="bg-black/20 border-white/10 text-white focus-visible:ring-indigo-500 placeholder:text-slate-600 h-10" />
+                  </div>
+                </div>
 
-                 <div className="space-y-1.5">
-                   <Label className="text-slate-300 text-xs uppercase tracking-wider">Target Date & Time</Label>
-                   <Input name="lecture_datetime" type="datetime-local" value={lectureForm.lecture_datetime} onChange={handleLectureChange} required 
-                     className="bg-black/20 border-white/10 text-white focus-visible:ring-indigo-500 h-10 [color-scheme:dark]" />
-                 </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-1.5 col-span-2 sm:col-span-1">
+                    <Label className="text-slate-300 text-xs uppercase tracking-wider">Lecture Name</Label>
+                    <Input name="lec_name" type="text" placeholder="Data Structures" value={lectureForm.lec_name} onChange={handleLectureChange} required autoComplete="new-password"
+                      className="bg-black/20 border-white/10 text-white focus-visible:ring-indigo-500 placeholder:text-slate-600 h-10" />
+                  </div>
+                  <div className="space-y-1.5 col-span-2 sm:col-span-1">
+                    <Label className="text-slate-300 text-xs uppercase tracking-wider">Course Code</Label>
+                    <Input name="course_code" type="text" placeholder="CS201" value={lectureForm.course_code} onChange={handleLectureChange} required autoComplete="new-password"
+                      className="bg-black/20 border-white/10 text-white focus-visible:ring-indigo-500 placeholder:text-slate-600 h-10" />
+                  </div>
+                </div>
 
-                 <Button type="submit" disabled={lectureStatus.loading} className="w-full bg-indigo-600 hover:bg-indigo-500 text-white mt-2 border border-indigo-500/50 shadow-[0_0_15px_rgba(99,102,241,0.2)] transition-all duration-300 h-11">
-                   <Clock className="mr-2 h-4 w-4" /> {lectureStatus.loading ? 'Scheduling...' : 'Reserve Timeslot'}
-                 </Button>
+                <div className="space-y-1.5">
+                  <Label className="text-slate-300 text-xs uppercase tracking-wider">Target Date & Time</Label>
+                  <Input name="lecture_datetime" type="datetime-local" value={lectureForm.lecture_datetime} onChange={handleLectureChange} required
+                    className="bg-black/20 border-white/10 text-white focus-visible:ring-indigo-500 h-10 [color-scheme:dark]" />
+                </div>
+
+                <Button type="submit" disabled={lectureStatus.loading} className="w-full bg-indigo-600 hover:bg-indigo-500 text-white mt-2 border border-indigo-500/50 shadow-[0_0_15px_rgba(99,102,241,0.2)] transition-all duration-300 h-11">
+                  <Clock className="mr-2 h-4 w-4" /> {lectureStatus.loading ? 'Scheduling...' : 'Reserve Timeslot'}
+                </Button>
               </form>
             </CardContent>
           </Card>

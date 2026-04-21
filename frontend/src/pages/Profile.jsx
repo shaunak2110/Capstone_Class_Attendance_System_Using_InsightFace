@@ -8,8 +8,8 @@ import { getUserProfile } from "@/services/api";
 
 const ROLE_MAP = {
   '1': { label: 'Super Admin', color: 'bg-purple-500/20 text-purple-400 border-purple-500/30', icon: Shield },
-  '2': { label: 'Admin',       color: 'bg-indigo-500/20 text-indigo-400 border-indigo-500/30',  icon: BadgeCheck },
-  '3': { label: 'Faculty',     color: 'bg-sky-500/20 text-sky-400 border-sky-500/30',           icon: User },
+  '2': { label: 'Admin', color: 'bg-indigo-500/20 text-indigo-400 border-indigo-500/30', icon: BadgeCheck },
+  '3': { label: 'Faculty', color: 'bg-sky-500/20 text-sky-400 border-sky-500/30', icon: User },
 };
 
 function InfoRow({ icon: Icon, label, value }) {
@@ -44,7 +44,6 @@ export default function Profile() {
       })
       .finally(() => setLoading(false));
   }, []);
-
   const initials = profile?.name
     ? profile.name.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase()
     : roleInfo.label[0];
@@ -61,8 +60,7 @@ export default function Profile() {
       <div className="absolute top-[-10%] right-[-10%] w-[40%] h-[40%] rounded-full bg-blue-600/10 blur-[120px] pointer-events-none" />
       <div className="absolute bottom-[-10%] left-[-10%] w-[30%] h-[40%] rounded-full bg-indigo-600/10 blur-[120px] pointer-events-none" />
 
-      <div className="relative space-y-6 animate-in fade-in duration-700 z-10 w-full max-w-3xl mx-auto">
-        {/* Header */}
+      <div className="relative space-y-6 animate-in fade-in duration-700 z-10 w-full px-4 sm:px-6 lg:px-10">        {/* Header */}
         <div className="flex items-center justify-between pb-6 border-b border-white/10">
           <h2 className="text-3xl font-extrabold tracking-tight text-transparent bg-clip-text bg-gradient-to-r from-blue-400 via-indigo-400 to-purple-400">
             My Profile
@@ -92,7 +90,7 @@ export default function Profile() {
             {/* Identity Card */}
             <Card className="bg-white/5 border-white/10 backdrop-blur-xl shadow-xl overflow-hidden">
               <div className="h-32 bg-gradient-to-r from-blue-600/40 via-indigo-600/40 to-purple-600/40 relative">
-                 <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')] opacity-20" />
+                <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')] opacity-20" />
               </div>
               <CardContent className="px-6 pb-6 -mt-12 relative z-10">
                 <div className="flex flex-col sm:flex-row items-start sm:items-end gap-4">
@@ -115,13 +113,12 @@ export default function Profile() {
               <CardHeader className="border-b border-white/5 pb-4">
                 <CardTitle className="text-lg text-white font-semibold">Account Details</CardTitle>
               </CardHeader>
-              <CardContent className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-6">
-                <InfoRow icon={User}      label="Full Name"    value={profile.name} />
-                <InfoRow icon={Mail}      label="Email"        value={profile.email_id} />
-                <InfoRow icon={Building2} label="School"       value={profile.school} />
-                <InfoRow icon={BookOpen}  label="Department"   value={profile.department} />
-                <InfoRow icon={BadgeCheck}label="User ID"      value={String(profile.user_id)} />
-                <InfoRow icon={Shield}    label="Role"         value={roleInfo.label} />
+              <CardContent className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 pt-6">                <InfoRow icon={User} label="Full Name" value={profile.name} />
+                <InfoRow icon={Mail} label="Email" value={profile.email_id} />
+                <InfoRow icon={Building2} label="School" value={profile.school} />
+                <InfoRow icon={BookOpen} label="Department" value={profile.department} />
+                <InfoRow icon={BadgeCheck} label="User ID" value={String(profile.user_id)} />
+                <InfoRow icon={Shield} label="Role" value={roleInfo.label} />
               </CardContent>
             </Card>
           </>
