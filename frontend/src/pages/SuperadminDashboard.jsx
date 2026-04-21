@@ -88,26 +88,26 @@ export default function SuperadminDashboard() {
   const totalFaculty = users.filter(u => u.privilege_level === 3).length;
 
   return (
-    <div className="relative min-h-[calc(100vh-2rem)] bg-[#0f1117] text-slate-200 p-4 sm:p-8 rounded-xl overflow-hidden font-sans shadow-2xl selection:bg-indigo-500/30">
+    <div className="relative min-h-[calc(100vh-2rem)] bg-slate-50 dark:bg-[#0f1117] text-slate-800 dark:text-slate-200 p-4 sm:p-8 rounded-xl overflow-hidden font-sans shadow-2xl selection:bg-indigo-500/30">
       {/* Background Effects */}
       <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] rounded-full bg-indigo-600/10 blur-[120px] pointer-events-none" />
       <div className="absolute bottom-[-10%] right-[-10%] w-[40%] h-[40%] rounded-full bg-violet-600/10 blur-[120px] pointer-events-none" />
 
       <div className="relative space-y-8 animate-in fade-in duration-700 z-10 w-full max-w-7xl mx-auto">
         {/* Header */}
-        <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 pb-6 border-b border-white/10">
+        <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 pb-6 border-b border-slate-300 dark:border-white/10">
           <div>
             <h2 className="text-4xl font-extrabold tracking-tight text-transparent bg-clip-text bg-gradient-to-r from-indigo-400 via-violet-400 to-purple-400 mb-2">
               Superadmin Hub
             </h2>
-            <p className="text-slate-400 text-lg">
+            <p className="text-slate-600 dark:text-slate-400 text-lg">
               Welcome back, <span className="font-semibold text-indigo-300">{userName}</span>
             </p>
           </div>
           <div className="flex gap-3">
             <Button
               onClick={() => navigate('/admin-records')}
-              className="bg-white/5 hover:bg-white/10 text-white border border-white/10 shadow-lg backdrop-blur-md transition-all duration-300"
+              className="bg-white dark:bg-white/5 hover:bg-slate-200 dark:hover:bg-white/10 text-slate-900 dark:text-white border border-slate-300 dark:border-white/10 shadow-lg backdrop-blur-md transition-all duration-300"
             >
               <BookOpen className="mr-2 h-4 w-4 text-indigo-400" /> View Attendance Records
             </Button>
@@ -133,14 +133,14 @@ export default function SuperadminDashboard() {
             { title: "Admin", value: totalAdmins, icon: ShieldCheck, color: "text-violet-400", bg: "bg-violet-400/10" },
             { title: "Faculty", value: totalFaculty, icon: UserCog, color: "text-emerald-400", bg: "bg-emerald-400/10" }
           ].map((stat, i) => (
-            <Card key={i} className="bg-white/5 border-white/10 backdrop-blur-xl shadow-xl hover:bg-white/10 transition-all duration-300">
+            <Card key={i} className="bg-white dark:bg-white/5 border-slate-300 dark:border-white/10 backdrop-blur-xl shadow-xl hover:bg-slate-200 dark:hover:bg-white/10 transition-all duration-300">
               <CardContent className="p-6 flex items-center gap-4">
                 <div className={`p-4 rounded-xl ${stat.bg}`}>
                   <stat.icon className={`h-8 w-8 ${stat.color}`} />
                 </div>
                 <div>
-                  <p className="text-sm font-medium text-slate-400 uppercase tracking-wider">{stat.title}</p>
-                  <p className="text-3xl font-bold text-white mt-1">{usersLoading ? '-' : stat.value}</p>
+                  <p className="text-sm font-medium text-slate-600 dark:text-slate-400 uppercase tracking-wider">{stat.title}</p>
+                  <p className="text-3xl font-bold text-slate-900 dark:text-white mt-1">{usersLoading ? '-' : stat.value}</p>
                 </div>
               </CardContent>
             </Card>
@@ -149,13 +149,13 @@ export default function SuperadminDashboard() {
 
         <div className="grid gap-8 lg:grid-cols-7 items-start">
           {/* User List */}
-          <Card className="lg:col-span-4 bg-white/5 border-white/10 backdrop-blur-xl shadow-xl overflow-hidden flex flex-col h-[600px]">
-            <CardHeader className="bg-black/20 border-b border-white/5 pb-4">
-              <CardTitle className="flex items-center gap-2 text-xl text-white">
+          <Card className="lg:col-span-4 bg-white dark:bg-white/5 border-slate-300 dark:border-white/10 backdrop-blur-xl shadow-xl overflow-hidden flex flex-col h-[600px]">
+            <CardHeader className="bg-white dark:bg-black/20 border-b border-slate-200 dark:border-white/5 pb-4">
+              <CardTitle className="flex items-center gap-2 text-xl text-slate-900 dark:text-white">
                 <Activity className="h-5 w-5 text-indigo-400" />
                 System Roster
               </CardTitle>
-              <CardDescription className="text-slate-400">Manage and view all registered users across the platform.</CardDescription>
+              <CardDescription className="text-slate-600 dark:text-slate-400">Manage and view all registered users across the platform.</CardDescription>
             </CardHeader>
             <CardContent className="p-0 flex-1 overflow-auto">
               <div className="p-4">
@@ -169,25 +169,25 @@ export default function SuperadminDashboard() {
                     <p>No users active.</p>
                   </div>
                 ) : (
-                  <div className="rounded-lg border border-white/10 overflow-hidden">
+                  <div className="rounded-lg border border-slate-300 dark:border-white/10 overflow-hidden">
                     <Table>
-                      <TableHeader className="bg-black/40">
-                        <TableRow className="border-white/10 hover:bg-transparent">
-                          <TableHead className="text-slate-400">User Details</TableHead>
-                          <TableHead className="text-slate-400">Department</TableHead>
-                          <TableHead className="text-slate-400">School</TableHead>
-                          <TableHead className="text-slate-400">Role</TableHead>
+                      <TableHeader className="bg-slate-50 dark:bg-black/40">
+                        <TableRow className="border-slate-300 dark:border-white/10 hover:bg-transparent">
+                          <TableHead className="text-slate-600 dark:text-slate-400">User Details</TableHead>
+                          <TableHead className="text-slate-600 dark:text-slate-400">Department</TableHead>
+                          <TableHead className="text-slate-600 dark:text-slate-400">School</TableHead>
+                          <TableHead className="text-slate-600 dark:text-slate-400">Role</TableHead>
                         </TableRow>
                       </TableHeader>
                       <TableBody>
                         {users.map((u) => (
-                          <TableRow key={u.user_id} className="border-white/5 hover:bg-white/5 transition-colors">
+                          <TableRow key={u.user_id} className="border-slate-200 dark:border-white/5 hover:bg-slate-100 dark:hover:bg-white/5 transition-colors">
                             <TableCell>
-                              <div className="font-semibold text-slate-200">{u.name}</div>
+                              <div className="font-semibold text-slate-800 dark:text-slate-200">{u.name}</div>
                               <div className="text-slate-500 text-xs mt-0.5">{u.username}</div>
                             </TableCell>
-                            <TableCell className="text-slate-400">{u.department}</TableCell>
-                            <TableCell className="text-slate-300">{u.school}</TableCell>
+                            <TableCell className="text-slate-600 dark:text-slate-400">{u.department}</TableCell>
+                            <TableCell className="text-slate-700 dark:text-slate-300">{u.school}</TableCell>
                             <TableCell>
                               {privilegeLabel(u.privilege_level)}
                             </TableCell>
@@ -203,15 +203,15 @@ export default function SuperadminDashboard() {
 
           {/* Creation Forms */}
           <div className="lg:col-span-3 space-y-6">
-            <div className="flex p-1 bg-black/40 rounded-xl border border-white/10 w-full backdrop-blur-md">
+            <div className="flex p-1 bg-slate-50 dark:bg-black/40 rounded-xl border border-slate-300 dark:border-white/10 w-full backdrop-blur-md">
               <button
-                className={`flex-1 flex items-center justify-center gap-2 py-3 text-sm font-semibold rounded-lg transition-all duration-300 ${activeTab === 'admin' ? 'bg-gradient-to-r from-indigo-500 to-violet-600 text-white shadow-lg shadow-indigo-500/25' : 'text-slate-400 hover:text-slate-200 hover:bg-white/5'}`}
+                className={`flex-1 flex items-center justify-center gap-2 py-3 text-sm font-semibold rounded-lg transition-all duration-300 ${activeTab === 'admin' ? 'bg-gradient-to-r from-indigo-500 to-violet-600 text-slate-900 dark:text-white shadow-lg shadow-indigo-500/25' : 'text-slate-600 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-white/5'}`}
                 onClick={() => setActiveTab('admin')}
               >
                 <Shield className="h-4 w-4" /> New Admin
               </button>
               <button
-                className={`flex-1 flex items-center justify-center gap-2 py-3 text-sm font-semibold rounded-lg transition-all duration-300 ${activeTab === 'faculty' ? 'bg-gradient-to-r from-emerald-500 to-teal-600 text-white shadow-lg shadow-emerald-500/25' : 'text-slate-400 hover:text-slate-200 hover:bg-white/5'}`}
+                className={`flex-1 flex items-center justify-center gap-2 py-3 text-sm font-semibold rounded-lg transition-all duration-300 ${activeTab === 'faculty' ? 'bg-gradient-to-r from-emerald-500 to-teal-600 text-slate-900 dark:text-white shadow-lg shadow-emerald-500/25' : 'text-slate-600 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-white/5'}`}
                 onClick={() => setActiveTab('faculty')}
               >
                 <UserCog className="h-4 w-4" /> New Faculty
@@ -221,11 +221,11 @@ export default function SuperadminDashboard() {
             <div className="relative">
               {activeTab === 'admin' && (
                 <div className="animate-in fade-in slide-in-from-right-4 duration-500">
-                  <Card className="bg-white/5 border-white/10 backdrop-blur-xl shadow-2xl relative overflow-hidden">
+                  <Card className="bg-white dark:bg-white/5 border-slate-300 dark:border-white/10 backdrop-blur-xl shadow-2xl relative overflow-hidden">
                     <div className="absolute top-0 right-0 w-32 h-32 bg-indigo-500/10 rounded-full blur-[50px] pointer-events-none" />
                     <CardHeader>
-                      <CardTitle className="text-white text-xl">Register Admin</CardTitle>
-                      <CardDescription className="text-slate-400">Grant administrative access securely.</CardDescription>
+                      <CardTitle className="text-slate-900 dark:text-white text-xl">Register Admin</CardTitle>
+                      <CardDescription className="text-slate-600 dark:text-slate-400">Grant administrative access securely.</CardDescription>
                     </CardHeader>
                     <CardContent>
                       <form onSubmit={handleCreateAdmin} className="space-y-4" autoComplete="off">
@@ -235,43 +235,43 @@ export default function SuperadminDashboard() {
 
                         <div className="grid grid-cols-2 gap-4">
                           <div className="space-y-1.5 col-span-2 sm:col-span-1">
-                            <Label htmlFor="admin-name" className="text-slate-300 text-xs uppercase tracking-wider">Full Name</Label>
+                            <Label htmlFor="admin-name" className="text-slate-700 dark:text-slate-300 text-xs uppercase tracking-wider">Full Name</Label>
                             <Input id="admin-name" name="name" type="text" value={form.name} onChange={handleChange} required autoComplete="new-password"
-                              className="bg-black/20 border-white/10 text-white focus-visible:ring-indigo-500 placeholder:text-slate-600" placeholder="John Doe" />
+                              className="bg-white dark:bg-black/20 border-slate-300 dark:border-white/10 text-slate-900 dark:text-white focus-visible:ring-indigo-500 placeholder:text-slate-400 dark:placeholder:text-slate-600" placeholder="John Doe" />
                           </div>
                           <div className="space-y-1.5 col-span-2 sm:col-span-1">
-                            <Label htmlFor="admin-username" className="text-slate-300 text-xs uppercase tracking-wider">Username</Label>
+                            <Label htmlFor="admin-username" className="text-slate-700 dark:text-slate-300 text-xs uppercase tracking-wider">Username</Label>
                             <Input id="admin-username" name="username" type="text" value={form.username} onChange={handleChange} required autoComplete="new-password"
-                              className="bg-black/20 border-white/10 text-white focus-visible:ring-indigo-500 placeholder:text-slate-600" placeholder="johndoe" />
+                              className="bg-white dark:bg-black/20 border-slate-300 dark:border-white/10 text-slate-900 dark:text-white focus-visible:ring-indigo-500 placeholder:text-slate-400 dark:placeholder:text-slate-600" placeholder="johndoe" />
                           </div>
                         </div>
 
                         <div className="space-y-1.5">
-                          <Label htmlFor="admin-email" className="text-slate-300 text-xs uppercase tracking-wider flex items-center gap-1"><Mail className="h-3 w-3" /> Email</Label>
+                          <Label htmlFor="admin-email" className="text-slate-700 dark:text-slate-300 text-xs uppercase tracking-wider flex items-center gap-1"><Mail className="h-3 w-3" /> Email</Label>
                           <Input id="admin-email" name="email_id" type="email" value={form.email_id} onChange={handleChange} required autoComplete="new-password"
-                            className="bg-black/20 border-white/10 text-white focus-visible:ring-indigo-500 placeholder:text-slate-600" placeholder="john@university.edu" />
+                            className="bg-white dark:bg-black/20 border-slate-300 dark:border-white/10 text-slate-900 dark:text-white focus-visible:ring-indigo-500 placeholder:text-slate-400 dark:placeholder:text-slate-600" placeholder="john@university.edu" />
                         </div>
 
                         <div className="space-y-1.5">
-                          <Label htmlFor="admin-password" className="text-slate-300 text-xs uppercase tracking-wider">Password</Label>
+                          <Label htmlFor="admin-password" className="text-slate-700 dark:text-slate-300 text-xs uppercase tracking-wider">Password</Label>
                           <Input id="admin-password" name="password" type="password" value={form.password} onChange={handleChange} required autoComplete="new-password"
-                            className="bg-black/20 border-white/10 text-white focus-visible:ring-indigo-500 placeholder:text-slate-600" placeholder="••••••••" />
+                            className="bg-white dark:bg-black/20 border-slate-300 dark:border-white/10 text-slate-900 dark:text-white focus-visible:ring-indigo-500 placeholder:text-slate-400 dark:placeholder:text-slate-600" placeholder="••••••••" />
                         </div>
 
                         <div className="grid grid-cols-2 gap-4">
                           <div className="space-y-1.5 col-span-2 sm:col-span-1">
-                            <Label htmlFor="admin-school" className="text-slate-300 text-xs uppercase tracking-wider flex items-center gap-1"><Building className="h-3 w-3" /> School</Label>
+                            <Label htmlFor="admin-school" className="text-slate-700 dark:text-slate-300 text-xs uppercase tracking-wider flex items-center gap-1"><Building className="h-3 w-3" /> School</Label>
                             <Input id="admin-school" name="school" type="text" value={form.school} onChange={handleChange} required autoComplete="new-password"
-                              className="bg-black/20 border-white/10 text-white focus-visible:ring-indigo-500 placeholder:text-slate-600" placeholder="Engineering" />
+                              className="bg-white dark:bg-black/20 border-slate-300 dark:border-white/10 text-slate-900 dark:text-white focus-visible:ring-indigo-500 placeholder:text-slate-400 dark:placeholder:text-slate-600" placeholder="Engineering" />
                           </div>
                           <div className="space-y-1.5 col-span-2 sm:col-span-1">
-                            <Label htmlFor="admin-dept" className="text-slate-300 text-xs uppercase tracking-wider flex items-center gap-1"><Landmark className="h-3 w-3" /> Department</Label>
+                            <Label htmlFor="admin-dept" className="text-slate-700 dark:text-slate-300 text-xs uppercase tracking-wider flex items-center gap-1"><Landmark className="h-3 w-3" /> Department</Label>
                             <Input id="admin-dept" name="department" type="text" value={form.department} onChange={handleChange} required autoComplete="new-password"
-                              className="bg-black/20 border-white/10 text-white focus-visible:ring-indigo-500 placeholder:text-slate-600" placeholder="Computer Science" />
+                              className="bg-white dark:bg-black/20 border-slate-300 dark:border-white/10 text-slate-900 dark:text-white focus-visible:ring-indigo-500 placeholder:text-slate-400 dark:placeholder:text-slate-600" placeholder="Computer Science" />
                           </div>
                         </div>
 
-                        <Button type="submit" disabled={creating} className="w-full bg-indigo-600 hover:bg-indigo-500 text-white mt-4 border border-indigo-500/50 shadow-lg shadow-indigo-500/20 transition-all duration-300">
+                        <Button type="submit" disabled={creating} className="w-full bg-indigo-600 hover:bg-indigo-500 text-slate-900 dark:text-white mt-4 border border-indigo-500/50 shadow-lg shadow-indigo-500/20 transition-all duration-300">
                           <Plus className="mr-2 h-4 w-4" />
                           {creating ? 'Registering...' : 'Create Admin Account'}
                         </Button>
@@ -283,11 +283,11 @@ export default function SuperadminDashboard() {
 
               {activeTab === 'faculty' && (
                 <div className="animate-in fade-in slide-in-from-right-4 duration-500">
-                  <Card className="bg-white/5 border-white/10 backdrop-blur-xl shadow-2xl relative overflow-hidden">
+                  <Card className="bg-white dark:bg-white/5 border-slate-300 dark:border-white/10 backdrop-blur-xl shadow-2xl relative overflow-hidden">
                     <div className="absolute top-0 right-0 w-32 h-32 bg-emerald-500/10 rounded-full blur-[50px] pointer-events-none" />
                     <CardHeader>
-                      <CardTitle className="text-white text-xl">Register Faculty</CardTitle>
-                      <CardDescription className="text-slate-400">Onboard a new teacher profile.</CardDescription>
+                      <CardTitle className="text-slate-900 dark:text-white text-xl">Register Faculty</CardTitle>
+                      <CardDescription className="text-slate-600 dark:text-slate-400">Onboard a new teacher profile.</CardDescription>
                     </CardHeader>
                     <CardContent>
                       <form onSubmit={handleCreateTeacher} className="space-y-4" autoComplete="off">
@@ -297,50 +297,50 @@ export default function SuperadminDashboard() {
 
                         <div className="grid grid-cols-2 gap-4">
                           <div className="space-y-1.5 col-span-2 sm:col-span-1">
-                            <Label htmlFor="faculty-name" className="text-slate-300 text-xs uppercase tracking-wider">Full Name</Label>
+                            <Label htmlFor="faculty-name" className="text-slate-700 dark:text-slate-300 text-xs uppercase tracking-wider">Full Name</Label>
                             <Input id="faculty-name" name="name" type="text" value={teacherForm.name} onChange={handleTeacherChange} required autoComplete="new-password"
-                              className="bg-black/20 border-white/10 text-white focus-visible:ring-emerald-500 placeholder:text-slate-600" placeholder="Jane Smith" />
+                              className="bg-white dark:bg-black/20 border-slate-300 dark:border-white/10 text-slate-900 dark:text-white focus-visible:ring-emerald-500 placeholder:text-slate-400 dark:placeholder:text-slate-600" placeholder="Jane Smith" />
                           </div>
                           <div className="space-y-1.5 col-span-2 sm:col-span-1">
-                            <Label htmlFor="faculty-username" className="text-slate-300 text-xs uppercase tracking-wider">Username</Label>
+                            <Label htmlFor="faculty-username" className="text-slate-700 dark:text-slate-300 text-xs uppercase tracking-wider">Username</Label>
                             <Input id="faculty-username" name="username" type="text" value={teacherForm.username} onChange={handleTeacherChange} required autoComplete="new-password"
-                              className="bg-black/20 border-white/10 text-white focus-visible:ring-emerald-500 placeholder:text-slate-600" placeholder="janesmith" />
+                              className="bg-white dark:bg-black/20 border-slate-300 dark:border-white/10 text-slate-900 dark:text-white focus-visible:ring-emerald-500 placeholder:text-slate-400 dark:placeholder:text-slate-600" placeholder="janesmith" />
                           </div>
                         </div>
 
                         <div className="grid grid-cols-2 gap-4">
                           <div className="space-y-1.5 col-span-2 sm:col-span-1">
-                            <Label htmlFor="faculty-email" className="text-slate-300 text-xs uppercase tracking-wider flex items-center gap-1"><Mail className="h-3 w-3" /> Email</Label>
+                            <Label htmlFor="faculty-email" className="text-slate-700 dark:text-slate-300 text-xs uppercase tracking-wider flex items-center gap-1"><Mail className="h-3 w-3" /> Email</Label>
                             <Input id="faculty-email" name="email_id" type="email" value={teacherForm.email_id} onChange={handleTeacherChange} required autoComplete="new-password"
-                              className="bg-black/20 border-white/10 text-white focus-visible:ring-emerald-500 placeholder:text-slate-600" placeholder="jane@university.edu" />
+                              className="bg-white dark:bg-black/20 border-slate-300 dark:border-white/10 text-slate-900 dark:text-white focus-visible:ring-emerald-500 placeholder:text-slate-400 dark:placeholder:text-slate-600" placeholder="jane@university.edu" />
                           </div>
                           <div className="space-y-1.5 col-span-2 sm:col-span-1">
-                            <Label htmlFor="faculty-phone" className="text-slate-300 text-xs uppercase tracking-wider flex items-center gap-1"><Phone className="h-3 w-3" /> Phone</Label>
+                            <Label htmlFor="faculty-phone" className="text-slate-700 dark:text-slate-300 text-xs uppercase tracking-wider flex items-center gap-1"><Phone className="h-3 w-3" /> Phone</Label>
                             <Input id="faculty-phone" name="mob" type="text" value={teacherForm.mob} onChange={handleTeacherChange} required autoComplete="new-password"
-                              className="bg-black/20 border-white/10 text-white focus-visible:ring-emerald-500 placeholder:text-slate-600" placeholder="+1 234 567 890" />
+                              className="bg-white dark:bg-black/20 border-slate-300 dark:border-white/10 text-slate-900 dark:text-white focus-visible:ring-emerald-500 placeholder:text-slate-400 dark:placeholder:text-slate-600" placeholder="+91 994230****" />
                           </div>
                         </div>
 
                         <div className="space-y-1.5">
-                          <Label htmlFor="faculty-password" className="text-slate-300 text-xs uppercase tracking-wider">Password</Label>
+                          <Label htmlFor="faculty-password" className="text-slate-700 dark:text-slate-300 text-xs uppercase tracking-wider">Password</Label>
                           <Input id="faculty-password" name="password" type="password" value={teacherForm.password} onChange={handleTeacherChange} required autoComplete="new-password"
-                            className="bg-black/20 border-white/10 text-white focus-visible:ring-emerald-500 placeholder:text-slate-600" placeholder="••••••••" />
+                            className="bg-white dark:bg-black/20 border-slate-300 dark:border-white/10 text-slate-900 dark:text-white focus-visible:ring-emerald-500 placeholder:text-slate-400 dark:placeholder:text-slate-600" placeholder="••••••••" />
                         </div>
 
                         <div className="grid grid-cols-2 gap-4">
                           <div className="space-y-1.5 col-span-2 sm:col-span-1">
-                            <Label htmlFor="faculty-school" className="text-slate-300 text-xs uppercase tracking-wider flex items-center gap-1"><Building className="h-3 w-3" /> School</Label>
+                            <Label htmlFor="faculty-school" className="text-slate-700 dark:text-slate-300 text-xs uppercase tracking-wider flex items-center gap-1"><Building className="h-3 w-3" /> School</Label>
                             <Input id="faculty-school" name="school" type="text" value={teacherForm.school} onChange={handleTeacherChange} required autoComplete="new-password"
-                              className="bg-black/20 border-white/10 text-white focus-visible:ring-emerald-500 placeholder:text-slate-600" placeholder="Engineering" />
+                              className="bg-white dark:bg-black/20 border-slate-300 dark:border-white/10 text-slate-900 dark:text-white focus-visible:ring-emerald-500 placeholder:text-slate-400 dark:placeholder:text-slate-600" placeholder="Engineering" />
                           </div>
                           <div className="space-y-1.5 col-span-2 sm:col-span-1">
-                            <Label htmlFor="faculty-dept" className="text-slate-300 text-xs uppercase tracking-wider flex items-center gap-1"><Landmark className="h-3 w-3" /> Department</Label>
+                            <Label htmlFor="faculty-dept" className="text-slate-700 dark:text-slate-300 text-xs uppercase tracking-wider flex items-center gap-1"><Landmark className="h-3 w-3" /> Department</Label>
                             <Input id="faculty-dept" name="department" type="text" value={teacherForm.department} onChange={handleTeacherChange} required autoComplete="new-password"
-                              className="bg-black/20 border-white/10 text-white focus-visible:ring-emerald-500 placeholder:text-slate-600" placeholder="Computer Science" />
+                              className="bg-white dark:bg-black/20 border-slate-300 dark:border-white/10 text-slate-900 dark:text-white focus-visible:ring-emerald-500 placeholder:text-slate-400 dark:placeholder:text-slate-600" placeholder="Computer Science" />
                           </div>
                         </div>
 
-                        <Button type="submit" disabled={creatingTeacher} className="w-full bg-emerald-600 hover:bg-emerald-500 text-white mt-4 border border-emerald-500/50 shadow-lg shadow-emerald-500/20 transition-all duration-300">
+                        <Button type="submit" disabled={creatingTeacher} className="w-full bg-emerald-600 hover:bg-emerald-500 text-slate-900 dark:text-white mt-4 border border-emerald-500/50 shadow-lg shadow-emerald-500/20 transition-all duration-300">
                           <Plus className="mr-2 h-4 w-4" />
                           {creatingTeacher ? 'Registering...' : 'Create Faculty Account'}
                         </Button>

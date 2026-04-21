@@ -94,8 +94,8 @@ export default function Results() {
   if (!state) {
     return (
       <div className="flex flex-col items-center justify-center min-h-[60vh] gap-4">
-        <p className="text-slate-400 text-lg">No attendance data available.</p>
-        <Button variant="outline" onClick={() => navigate('/dashboard')} className="bg-white/5 hover:bg-white/10 text-white border-white/10 shadow-lg backdrop-blur-md">
+        <p className="text-slate-600 dark:text-slate-400 text-lg">No attendance data available.</p>
+        <Button variant="outline" onClick={() => navigate('/dashboard')} className="bg-white dark:bg-white/5 hover:bg-slate-200 dark:hover:bg-white/10 text-slate-900 dark:text-white border-slate-300 dark:border-white/10 shadow-lg backdrop-blur-md">
           <ArrowLeft className="mr-2 h-4 w-4" /> Back to Dashboard
         </Button>
       </div>
@@ -172,13 +172,13 @@ export default function Results() {
     return (
       <div className="flex flex-col items-center justify-center min-h-[60vh] gap-4">
         <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-500"></div>
-        <p className="text-slate-400 font-medium">Fetching class list and analyzing results...</p>
+        <p className="text-slate-600 dark:text-slate-400 font-medium">Fetching class list and analyzing results...</p>
       </div>
     );
   }
 
   return (
-    <div className="relative min-h-[calc(100vh-2rem)] bg-[#0f1117] text-slate-200 p-4 sm:p-8 rounded-xl overflow-hidden font-sans shadow-2xl selection:bg-purple-500/30">
+    <div className="relative min-h-[calc(100vh-2rem)] bg-slate-50 dark:bg-[#0f1117] text-slate-800 dark:text-slate-200 p-4 sm:p-8 rounded-xl overflow-hidden font-sans shadow-2xl selection:bg-purple-500/30">
       {/* Background Effects */}
       <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] rounded-full bg-purple-600/10 blur-[120px] pointer-events-none" />
       <div className="absolute top-[40%] right-[-10%] w-[30%] h-[40%] rounded-full bg-teal-600/10 blur-[120px] pointer-events-none" />
@@ -186,19 +186,19 @@ export default function Results() {
 
       <div className="relative space-y-6 animate-in fade-in duration-700 z-10 w-full max-w-7xl mx-auto">
         {/* Header */}
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-6 border-b border-white/10">
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-6 border-b border-slate-300 dark:border-white/10">
           <div>
             <h2 className="text-3xl font-extrabold tracking-tight text-transparent bg-clip-text bg-gradient-to-r from-purple-400 via-teal-400 to-indigo-400">
               Attendance Results
             </h2>
-            <p className="text-slate-400 mt-2">Review and approve attendance for Lecture ID: <span className="font-semibold text-white">{lecId}</span></p>
+            <p className="text-slate-600 dark:text-slate-400 mt-2">Review and approve attendance for Lecture ID: <span className="font-semibold text-slate-900 dark:text-white">{lecId}</span></p>
           </div>
           <div className="flex gap-3">
-            <Button variant="outline" onClick={() => navigate('/dashboard')} disabled={finalizing} className="bg-white/5 hover:bg-white/10 text-white border border-white/10 shadow-lg backdrop-blur-md transition-all duration-300">
+            <Button variant="outline" onClick={() => navigate('/dashboard')} disabled={finalizing} className="bg-white dark:bg-white/5 hover:bg-slate-200 dark:hover:bg-white/10 text-slate-900 dark:text-white border border-slate-300 dark:border-white/10 shadow-lg backdrop-blur-md transition-all duration-300">
               <ArrowLeft className="mr-2 h-4 w-4" /> Dashboard
             </Button>
             {!successMsg && (
-              <Button onClick={handleApprove} disabled={finalizing} className="bg-indigo-600 hover:bg-indigo-500 text-white shadow-[0_0_15px_rgba(99,102,241,0.3)] border border-indigo-500/50 transition-all duration-300">
+              <Button onClick={handleApprove} disabled={finalizing} className="bg-indigo-600 hover:bg-indigo-500 text-slate-900 dark:text-white shadow-[0_0_15px_rgba(99,102,241,0.3)] border border-indigo-500/50 transition-all duration-300">
                 {finalizing ? 'Approving...' : 'Approve Attendance'}
               </Button>
             )}
@@ -218,7 +218,7 @@ export default function Results() {
                     setError('Failed to download CSV');
                   }
                 }}
-                className="bg-teal-600 hover:bg-teal-500 text-white shadow-[0_0_15px_rgba(20,184,166,0.3)] border border-teal-500/50 transition-all duration-300"
+                className="bg-teal-600 hover:bg-teal-500 text-slate-900 dark:text-white shadow-[0_0_15px_rgba(20,184,166,0.3)] border border-teal-500/50 transition-all duration-300"
               >
                 <Download className="mr-2 h-4 w-4" /> Download CSV
               </Button>
@@ -242,11 +242,11 @@ export default function Results() {
         <div className="grid grid-cols-1 lg:grid-cols-[1fr_1.5fr] gap-8">
           {/* TOP LEFT: Summary Cards */}
           <div className="flex flex-col gap-5">
-            <Card className="bg-white/5 border-white/10 backdrop-blur-xl shadow-xl relative overflow-hidden transition-all duration-300 hover:bg-white/[0.07] border-l-4 border-l-teal-500">
+            <Card className="bg-white dark:bg-white/5 border-slate-300 dark:border-white/10 backdrop-blur-xl shadow-xl relative overflow-hidden transition-all duration-300 hover:bg-slate-100 dark:hover:bg-white/[0.07] border-l-4 border-l-teal-500">
               <CardContent className="p-5 flex justify-between items-center">
                 <div>
                   <p className="text-teal-400 text-sm font-semibold uppercase tracking-wider">Present</p>
-                  <p className="text-4xl font-bold text-white mt-1">{presentCount}</p>
+                  <p className="text-4xl font-bold text-slate-900 dark:text-white mt-1">{presentCount}</p>
                 </div>
                 <div className="bg-teal-500/20 p-3 rounded-xl border border-teal-500/20 shadow-[0_0_15px_rgba(20,184,166,0.15)]">
                   <CheckCircle className="h-8 w-8 text-teal-400" />
@@ -254,11 +254,11 @@ export default function Results() {
               </CardContent>
             </Card>
 
-            <Card className="bg-white/5 border-white/10 backdrop-blur-xl shadow-xl relative overflow-hidden transition-all duration-300 hover:bg-white/[0.07] border-l-4 border-l-red-500">
+            <Card className="bg-white dark:bg-white/5 border-slate-300 dark:border-white/10 backdrop-blur-xl shadow-xl relative overflow-hidden transition-all duration-300 hover:bg-slate-100 dark:hover:bg-white/[0.07] border-l-4 border-l-red-500">
               <CardContent className="p-5 flex justify-between items-center">
                 <div>
                   <p className="text-red-400 text-sm font-semibold uppercase tracking-wider">Absent</p>
-                  <p className="text-4xl font-bold text-white mt-1">{absentCount}</p>
+                  <p className="text-4xl font-bold text-slate-900 dark:text-white mt-1">{absentCount}</p>
                 </div>
                 <div className="bg-red-500/20 p-3 rounded-xl border border-red-500/20 shadow-[0_0_15px_rgba(239,68,68,0.15)]">
                   <AlertTriangle className="h-8 w-8 text-red-400" />
@@ -266,11 +266,11 @@ export default function Results() {
               </CardContent>
             </Card>
 
-            <Card className="bg-white/5 border-white/10 backdrop-blur-xl shadow-xl relative overflow-hidden transition-all duration-300 hover:bg-white/[0.07] border-l-4 border-l-purple-500">
+            <Card className="bg-white dark:bg-white/5 border-slate-300 dark:border-white/10 backdrop-blur-xl shadow-xl relative overflow-hidden transition-all duration-300 hover:bg-slate-100 dark:hover:bg-white/[0.07] border-l-4 border-l-purple-500">
               <CardContent className="p-5 flex justify-between items-center">
                 <div>
                   <p className="text-purple-400 text-sm font-semibold uppercase tracking-wider">Total</p>
-                  <p className="text-4xl font-bold text-white mt-1">{totalCount}</p>
+                  <p className="text-4xl font-bold text-slate-900 dark:text-white mt-1">{totalCount}</p>
                 </div>
                 <div className="bg-purple-500/20 p-3 rounded-xl border border-purple-500/20 shadow-[0_0_15px_rgba(168,85,247,0.15)] text-purple-400 flex font-bold w-14 h-14 items-center justify-center text-2xl">
                   ∑
@@ -281,10 +281,10 @@ export default function Results() {
 
           {/* TOP RIGHT: Processed Image Preview Section */}
           <div className="flex flex-col h-full">
-            <Card className="bg-white/5 border-white/10 backdrop-blur-xl shadow-xl relative overflow-hidden transition-all duration-300 flex-1 flex flex-col min-h-[300px]">
-              <CardHeader className="py-5 border-b border-white/5">
-                <CardTitle className="text-white text-xl">Processed Captures</CardTitle>
-                <CardDescription className="text-slate-400">Visuals parsed directly by the server bounding-box models</CardDescription>
+            <Card className="bg-white dark:bg-white/5 border-slate-300 dark:border-white/10 backdrop-blur-xl shadow-xl relative overflow-hidden transition-all duration-300 flex-1 flex flex-col min-h-[300px]">
+              <CardHeader className="py-5 border-b border-slate-200 dark:border-white/5">
+                <CardTitle className="text-slate-900 dark:text-white text-xl">Processed Captures</CardTitle>
+                <CardDescription className="text-slate-600 dark:text-slate-400">Visuals parsed directly by the server bounding-box models</CardDescription>
               </CardHeader>
               <CardContent className="flex-1 overflow-y-auto max-h-[320px] pt-4">
                 {images.length > 0 ? (
@@ -294,7 +294,7 @@ export default function Results() {
                         <img
                           src={`data:image/jpeg;base64,${imgObj.image}`}
                           alt={`Processed Result #${idx + 1}`}
-                          className="w-full aspect-square object-cover rounded-lg border border-white/10 shadow-[0_4px_12px_rgba(0,0,0,0.5)] transition-transform hover:scale-105"
+                          className="w-full aspect-square object-cover rounded-lg border border-slate-300 dark:border-white/10 shadow-[0_4px_12px_rgba(0,0,0,0.5)] transition-transform hover:scale-105"
                         />
                       </div>
                     ))}
@@ -310,27 +310,27 @@ export default function Results() {
         </div>
 
         {/* BOTTOM: Attendance Table */}
-        <Card className="bg-white/5 border-white/10 backdrop-blur-xl shadow-xl relative overflow-hidden">
-          <CardHeader className="border-b border-white/5 pb-4">
-            <CardTitle className="text-white text-xl">Student Roster</CardTitle>
-            <CardDescription className="text-slate-400">Verify system identification and manually correct if necessary prior to Approval.</CardDescription>
+        <Card className="bg-white dark:bg-white/5 border-slate-300 dark:border-white/10 backdrop-blur-xl shadow-xl relative overflow-hidden">
+          <CardHeader className="border-b border-slate-200 dark:border-white/5 pb-4">
+            <CardTitle className="text-slate-900 dark:text-white text-xl">Student Roster</CardTitle>
+            <CardDescription className="text-slate-600 dark:text-slate-400">Verify system identification and manually correct if necessary prior to Approval.</CardDescription>
           </CardHeader>
           <CardContent className="pt-4 p-0 sm:p-6 sm:pt-4">
-            <div className="rounded-md border border-white/10 overflow-hidden">
+            <div className="rounded-md border border-slate-300 dark:border-white/10 overflow-hidden">
               <Table>
-                <TableHeader className="bg-black/20 border-b border-white/10">
-                  <TableRow className="border-b border-white/10 hover:bg-transparent">
-                    <TableHead className="font-semibold text-slate-300">Student Name</TableHead>
-                    <TableHead className="font-semibold text-slate-300">Rollno</TableHead>
-                    <TableHead className="font-semibold text-slate-300">PRN</TableHead>
-                    <TableHead className="font-semibold text-slate-300">Confidence</TableHead>
-                    <TableHead className="font-semibold text-slate-300">Status</TableHead>
-                    <TableHead className="text-right font-semibold text-slate-300">Feedback</TableHead>
+                <TableHeader className="bg-white dark:bg-black/20 border-b border-slate-300 dark:border-white/10">
+                  <TableRow className="border-b border-slate-300 dark:border-white/10 hover:bg-transparent">
+                    <TableHead className="font-semibold text-slate-700 dark:text-slate-300">Student Name</TableHead>
+                    <TableHead className="font-semibold text-slate-700 dark:text-slate-300">Rollno</TableHead>
+                    <TableHead className="font-semibold text-slate-700 dark:text-slate-300">PRN</TableHead>
+                    <TableHead className="font-semibold text-slate-700 dark:text-slate-300">Confidence</TableHead>
+                    <TableHead className="font-semibold text-slate-700 dark:text-slate-300">Status</TableHead>
+                    <TableHead className="text-right font-semibold text-slate-700 dark:text-slate-300">Feedback</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {data.map((s) => (
-                    <TableRow key={s.prn} className="border-b border-white/5 hover:bg-white/5 transition-colors">
+                    <TableRow key={s.prn} className="border-b border-slate-200 dark:border-white/5 hover:bg-slate-100 dark:hover:bg-white/5 transition-colors">
                       <TableCell>
                         <div className="flex items-center gap-3">
                           <Avatar className="h-9 w-9 border border-[#0f1117] shadow-lg">
@@ -342,11 +342,11 @@ export default function Results() {
                               </AvatarFallback>
                             )}
                           </Avatar>
-                          <span className="font-medium text-white">{s.name}</span>
+                          <span className="font-medium text-slate-900 dark:text-white">{s.name}</span>
                         </div>
                       </TableCell>
-                      <TableCell className="text-slate-300">{s.rollno}</TableCell>
-                      <TableCell className="font-mono text-sm text-slate-400">{s.prn}</TableCell>
+                      <TableCell className="text-slate-700 dark:text-slate-300">{s.rollno}</TableCell>
+                      <TableCell className="font-mono text-sm text-slate-600 dark:text-slate-400">{s.prn}</TableCell>
                       <TableCell>
                         {s.confidence > 0 ? (
                           <span className={`font-semibold ${s.confidence < 70 ? 'text-amber-400' : 'text-teal-400'}`}>
@@ -357,14 +357,14 @@ export default function Results() {
                         )}
                       </TableCell>
                       <TableCell>
-                        <span className={`px-2.5 py-1 rounded-full text-xs font-bold border ${s.status === 'Present' ? 'bg-teal-500/10 text-teal-400 border-teal-500/20 shadow-[0_0_10px_rgba(20,184,166,0.1)]' : s.status === 'Absent' ? 'bg-red-500/10 text-red-400 border-red-500/20 shadow-[0_0_10px_rgba(239,68,68,0.1)]' : 'bg-slate-500/10 text-slate-400 border-slate-500/20'}`}>
+                        <span className={`px-2.5 py-1 rounded-full text-xs font-bold border ${s.status === 'Present' ? 'bg-teal-500/10 text-teal-400 border-teal-500/20 shadow-[0_0_10px_rgba(20,184,166,0.1)]' : s.status === 'Absent' ? 'bg-red-500/10 text-red-400 border-red-500/20 shadow-[0_0_10px_rgba(239,68,68,0.1)]' : 'bg-slate-500/10 text-slate-600 dark:text-slate-400 border-slate-500/20'}`}>
                           {s.status}
                         </span>
                       </TableCell>
                       <TableCell className="text-right">
                         {s.isUnidentified ? (
                           <div className="flex gap-2 justify-end">
-                            <Button variant="outline" size="sm" onClick={() => handleUnknown(s)} disabled={s.status !== '-'} className="h-8 bg-black/20 hover:bg-black/40 text-white border-white/20">Unknown</Button>
+                            <Button variant="outline" size="sm" onClick={() => handleUnknown(s)} disabled={s.status !== '-'} className="h-8 bg-white dark:bg-black/20 hover:bg-slate-200 dark:hover:bg-black/40 text-slate-900 dark:text-white border-slate-400 dark:border-white/20">Unknown</Button>
                             <Button variant="ghost" size="sm" onClick={() => handleReject(s)} disabled={s.status !== '-'} className="h-8 text-red-400 hover:text-red-300 hover:bg-red-500/20">Rejected</Button>
                           </div>
                         ) : (
@@ -383,44 +383,44 @@ export default function Results() {
 
         {/* Correction Dialog */}
         <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-          <DialogContent className="sm:max-w-[500px] bg-[#0f1117] border border-white/10 text-slate-200 shadow-2xl">
+          <DialogContent className="sm:max-w-[500px] bg-slate-50 dark:bg-[#0f1117] border border-slate-300 dark:border-white/10 text-slate-800 dark:text-slate-200 shadow-2xl">
             <DialogHeader>
-              <DialogTitle className="text-white text-xl">Manage Student Enrollment</DialogTitle>
+              <DialogTitle className="text-slate-900 dark:text-white text-xl">Manage Student Enrollment</DialogTitle>
             </DialogHeader>
             <div className="py-4">
-              <p className="text-sm text-slate-400 mb-5">You are registering an unidentified face. Fill out the registry form to mark present.</p>
+              <p className="text-sm text-slate-600 dark:text-slate-400 mb-5">You are registering an unidentified face. Fill out the registry form to mark present.</p>
               <form onSubmit={handleEnrollSubmit} className="grid grid-cols-2 gap-4">
                 <div className="col-span-2 space-y-1.5">
-                  <Label className="text-slate-300 text-xs uppercase tracking-wider">Student Full Name</Label>
-                  <Input required value={enrollForm.name} onChange={e => setEnrollForm({ ...enrollForm, name: e.target.value })} placeholder="Jane Doe" className="bg-black/20 border-white/10 text-white focus-visible:ring-indigo-500 placeholder:text-slate-600 h-10" />
+                  <Label className="text-slate-700 dark:text-slate-300 text-xs uppercase tracking-wider">Student Full Name</Label>
+                  <Input required value={enrollForm.name} onChange={e => setEnrollForm({ ...enrollForm, name: e.target.value })} placeholder="Jane Doe" className="bg-white dark:bg-black/20 border-slate-300 dark:border-white/10 text-slate-900 dark:text-white focus-visible:ring-indigo-500 placeholder:text-slate-400 dark:placeholder:text-slate-600 h-10" />
                 </div>
                 <div className="space-y-1.5">
-                  <Label className="text-slate-300 text-xs uppercase tracking-wider">PRN</Label>
-                  <Input required value={enrollForm.prn} onChange={e => setEnrollForm({ ...enrollForm, prn: e.target.value })} placeholder="Unique ID" className="bg-black/20 border-white/10 text-white focus-visible:ring-indigo-500 placeholder:text-slate-600 h-10" />
+                  <Label className="text-slate-700 dark:text-slate-300 text-xs uppercase tracking-wider">PRN</Label>
+                  <Input required value={enrollForm.prn} onChange={e => setEnrollForm({ ...enrollForm, prn: e.target.value })} placeholder="Unique ID" className="bg-white dark:bg-black/20 border-slate-300 dark:border-white/10 text-slate-900 dark:text-white focus-visible:ring-indigo-500 placeholder:text-slate-400 dark:placeholder:text-slate-600 h-10" />
                 </div>
                 <div className="space-y-1.5">
-                  <Label className="text-slate-300 text-xs uppercase tracking-wider">Rollno</Label>
-                  <Input required value={enrollForm.rollno} onChange={e => setEnrollForm({ ...enrollForm, rollno: e.target.value })} placeholder="Roll Number" className="bg-black/20 border-white/10 text-white focus-visible:ring-indigo-500 placeholder:text-slate-600 h-10" />
+                  <Label className="text-slate-700 dark:text-slate-300 text-xs uppercase tracking-wider">Rollno</Label>
+                  <Input required value={enrollForm.rollno} onChange={e => setEnrollForm({ ...enrollForm, rollno: e.target.value })} placeholder="Roll Number" className="bg-white dark:bg-black/20 border-slate-300 dark:border-white/10 text-slate-900 dark:text-white focus-visible:ring-indigo-500 placeholder:text-slate-400 dark:placeholder:text-slate-600 h-10" />
                 </div>
                 <div className="space-y-1.5">
-                  <Label className="text-slate-300 text-xs uppercase tracking-wider">Year</Label>
-                  <Input required value={enrollForm.year} onChange={e => setEnrollForm({ ...enrollForm, year: e.target.value })} placeholder="1st Year" className="bg-black/20 border-white/10 text-white focus-visible:ring-indigo-500 placeholder:text-slate-600 h-10" />
+                  <Label className="text-slate-700 dark:text-slate-300 text-xs uppercase tracking-wider">Year</Label>
+                  <Input required value={enrollForm.year} onChange={e => setEnrollForm({ ...enrollForm, year: e.target.value })} placeholder="1st Year" className="bg-white dark:bg-black/20 border-slate-300 dark:border-white/10 text-slate-900 dark:text-white focus-visible:ring-indigo-500 placeholder:text-slate-400 dark:placeholder:text-slate-600 h-10" />
                 </div>
                 <div className="space-y-1.5">
-                  <Label className="text-slate-300 text-xs uppercase tracking-wider">Course</Label>
-                  <Input required value={enrollForm.course} onChange={e => setEnrollForm({ ...enrollForm, course: e.target.value })} placeholder="B.Tech" className="bg-black/20 border-white/10 text-white focus-visible:ring-indigo-500 placeholder:text-slate-600 h-10" />
+                  <Label className="text-slate-700 dark:text-slate-300 text-xs uppercase tracking-wider">Course</Label>
+                  <Input required value={enrollForm.course} onChange={e => setEnrollForm({ ...enrollForm, course: e.target.value })} placeholder="B.Tech" className="bg-white dark:bg-black/20 border-slate-300 dark:border-white/10 text-slate-900 dark:text-white focus-visible:ring-indigo-500 placeholder:text-slate-400 dark:placeholder:text-slate-600 h-10" />
                 </div>
                 <div className="space-y-1.5">
-                  <Label className="text-slate-300 text-xs uppercase tracking-wider">Specialisation</Label>
-                  <Input required value={enrollForm.specialisation} onChange={e => setEnrollForm({ ...enrollForm, specialisation: e.target.value })} placeholder="Computer Science" className="bg-black/20 border-white/10 text-white focus-visible:ring-indigo-500 placeholder:text-slate-600 h-10" />
+                  <Label className="text-slate-700 dark:text-slate-300 text-xs uppercase tracking-wider">Specialisation</Label>
+                  <Input required value={enrollForm.specialisation} onChange={e => setEnrollForm({ ...enrollForm, specialisation: e.target.value })} placeholder="Computer Science" className="bg-white dark:bg-black/20 border-slate-300 dark:border-white/10 text-slate-900 dark:text-white focus-visible:ring-indigo-500 placeholder:text-slate-400 dark:placeholder:text-slate-600 h-10" />
                 </div>
                 <div className="space-y-1.5">
-                  <Label className="text-slate-300 text-xs uppercase tracking-wider">Panel</Label>
-                  <Input required value={enrollForm.panel} onChange={e => setEnrollForm({ ...enrollForm, panel: e.target.value })} placeholder="Panel A" className="bg-black/20 border-white/10 text-white focus-visible:ring-indigo-500 placeholder:text-slate-600 h-10" />
+                  <Label className="text-slate-700 dark:text-slate-300 text-xs uppercase tracking-wider">Panel</Label>
+                  <Input required value={enrollForm.panel} onChange={e => setEnrollForm({ ...enrollForm, panel: e.target.value })} placeholder="Panel A" className="bg-white dark:bg-black/20 border-slate-300 dark:border-white/10 text-slate-900 dark:text-white focus-visible:ring-indigo-500 placeholder:text-slate-400 dark:placeholder:text-slate-600 h-10" />
                 </div>
                 <div className="col-span-2 mt-5 flex gap-4">
-                  <Button type="button" variant="outline" className="flex-1 bg-white/5 hover:bg-white/10 text-white border-white/10 border" onClick={() => setIsDialogOpen(false)}>Cancel</Button>
-                  <Button type="submit" className="flex-1 bg-indigo-600 hover:bg-indigo-500 text-white border border-indigo-500/50 shadow-[0_0_15px_rgba(99,102,241,0.2)]">Submit & Mark Present</Button>
+                  <Button type="button" variant="outline" className="flex-1 bg-white dark:bg-white/5 hover:bg-slate-200 dark:hover:bg-white/10 text-slate-900 dark:text-white border-slate-300 dark:border-white/10 border" onClick={() => setIsDialogOpen(false)}>Cancel</Button>
+                  <Button type="submit" className="flex-1 bg-indigo-600 hover:bg-indigo-500 text-slate-900 dark:text-white border border-indigo-500/50 shadow-[0_0_15px_rgba(99,102,241,0.2)]">Submit & Mark Present</Button>
                 </div>
               </form>
             </div>

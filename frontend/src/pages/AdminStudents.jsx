@@ -76,25 +76,25 @@ export default function AdminStudents() {
   };
 
   return (
-    <div className="relative min-h-[calc(100vh-2rem)] bg-[#0f1117] text-slate-200 p-4 sm:p-8 rounded-xl overflow-hidden font-sans shadow-2xl selection:bg-purple-500/30">
+    <div className="relative min-h-[calc(100vh-2rem)] bg-slate-50 dark:bg-[#0f1117] text-slate-800 dark:text-slate-200 p-4 sm:p-8 rounded-xl overflow-hidden font-sans shadow-2xl selection:bg-purple-500/30">
       {/* Background Effects */}
       <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] rounded-full bg-purple-600/10 blur-[120px] pointer-events-none" />
       <div className="absolute bottom-[-10%] right-[-10%] w-[30%] h-[40%] rounded-full bg-indigo-600/10 blur-[120px] pointer-events-none" />
 
       <div className="relative space-y-6 animate-in fade-in duration-700 z-10 w-full max-w-7xl mx-auto">
-        <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 pb-6 border-b border-white/10">
+        <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 pb-6 border-b border-slate-300 dark:border-white/10">
           <h2 className="text-3xl font-extrabold tracking-tight text-transparent bg-clip-text bg-gradient-to-r from-purple-400 via-violet-400 to-indigo-400">
             Manage Students
           </h2>
-          <Button variant="outline" onClick={() => navigate('/admin-dashboard')} className="bg-white/5 hover:bg-white/10 text-white border-white/10 shadow-lg backdrop-blur-md transition-all duration-300">
+          <Button variant="outline" onClick={() => navigate('/admin-dashboard')} className="bg-white dark:bg-white/5 hover:bg-slate-200 dark:hover:bg-white/10 text-slate-900 dark:text-white border-slate-300 dark:border-white/10 shadow-lg backdrop-blur-md transition-all duration-300">
             <ArrowLeft className="mr-2 h-4 w-4" /> Back to Dashboard
           </Button>
         </div>
 
-        <Card className="max-w-2xl mx-auto bg-white/5 border-white/10 backdrop-blur-xl shadow-xl relative overflow-hidden transition-all duration-300 hover:bg-white/[0.07]">
+        <Card className="max-w-2xl mx-auto bg-white dark:bg-white/5 border-slate-300 dark:border-white/10 backdrop-blur-xl shadow-xl relative overflow-hidden transition-all duration-300 hover:bg-slate-100 dark:hover:bg-white/[0.07]">
           <div className="absolute top-0 right-0 w-32 h-32 bg-purple-500/10 rounded-full blur-[50px] pointer-events-none" />
-          <CardHeader className="border-b border-white/5 pb-4">
-            <CardTitle className="text-white flex items-center gap-3">
+          <CardHeader className="border-b border-slate-200 dark:border-white/5 pb-4">
+            <CardTitle className="text-slate-900 dark:text-white flex items-center gap-3">
               <div className="bg-purple-500/20 text-purple-400 p-2.5 rounded-lg border border-purple-500/20 shadow-[0_0_15px_rgba(168,85,247,0.15)]">
                 <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
@@ -119,7 +119,7 @@ export default function AdminStudents() {
               )}
 
               <div className="space-y-1.5">
-                <Label htmlFor="prn" className="text-slate-300 text-xs uppercase tracking-wider">PRN</Label>
+                <Label htmlFor="prn" className="text-slate-700 dark:text-slate-300 text-xs uppercase tracking-wider">PRN</Label>
                 <Input
                   id="prn"
                   type="text"
@@ -128,12 +128,12 @@ export default function AdminStudents() {
                   onChange={(e) => setPrn(e.target.value)}
                   required
                   disabled={loading}
-                  className="bg-black/20 border-white/10 text-white focus-visible:ring-purple-500 placeholder:text-slate-600 h-10"
+                  className="bg-white dark:bg-black/20 border-slate-300 dark:border-white/10 text-slate-900 dark:text-white focus-visible:ring-purple-500 placeholder:text-slate-400 dark:placeholder:text-slate-600 h-10"
                 />
               </div>
 
               <div className="space-y-1.5">
-                <Label htmlFor="student-name" className="text-slate-300 text-xs uppercase tracking-wider">Student Name</Label>
+                <Label htmlFor="student-name" className="text-slate-700 dark:text-slate-300 text-xs uppercase tracking-wider">Student Name</Label>
                 <Input
                   id="student-name"
                   type="text"
@@ -142,34 +142,34 @@ export default function AdminStudents() {
                   onChange={(e) => setName(e.target.value)}
                   required
                   disabled={loading}
-                  className="bg-black/20 border-white/10 text-white focus-visible:ring-purple-500 placeholder:text-slate-600 h-10"
+                  className="bg-white dark:bg-black/20 border-slate-300 dark:border-white/10 text-slate-900 dark:text-white focus-visible:ring-purple-500 placeholder:text-slate-400 dark:placeholder:text-slate-600 h-10"
                 />
               </div>
 
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-1.5">
-                  <Label htmlFor="year" className="text-slate-300 text-xs uppercase tracking-wider">Year</Label>
-                  <Input id="year" type="text" placeholder="e.g. FY" value={year} onChange={(e) => setYear(e.target.value)} required disabled={loading} className="bg-black/20 border-white/10 text-white focus-visible:ring-purple-500 placeholder:text-slate-600 h-10" />
+                  <Label htmlFor="year" className="text-slate-700 dark:text-slate-300 text-xs uppercase tracking-wider">Year</Label>
+                  <Input id="year" type="text" placeholder="e.g. FY" value={year} onChange={(e) => setYear(e.target.value)} required disabled={loading} className="bg-white dark:bg-black/20 border-slate-300 dark:border-white/10 text-slate-900 dark:text-white focus-visible:ring-purple-500 placeholder:text-slate-400 dark:placeholder:text-slate-600 h-10" />
                 </div>
                 <div className="space-y-1.5">
-                  <Label htmlFor="course" className="text-slate-300 text-xs uppercase tracking-wider">Course</Label>
-                  <Input id="course" type="text" placeholder="e.g. B.Tech CS" value={course} onChange={(e) => setCourse(e.target.value)} required disabled={loading} className="bg-black/20 border-white/10 text-white focus-visible:ring-purple-500 placeholder:text-slate-600 h-10" />
+                  <Label htmlFor="course" className="text-slate-700 dark:text-slate-300 text-xs uppercase tracking-wider">Course</Label>
+                  <Input id="course" type="text" placeholder="e.g. B.Tech CS" value={course} onChange={(e) => setCourse(e.target.value)} required disabled={loading} className="bg-white dark:bg-black/20 border-slate-300 dark:border-white/10 text-slate-900 dark:text-white focus-visible:ring-purple-500 placeholder:text-slate-400 dark:placeholder:text-slate-600 h-10" />
                 </div>
               </div>
 
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-1.5">
-                  <Label htmlFor="specialisation" className="text-slate-300 text-xs uppercase tracking-wider">Specialisation</Label>
-                  <Input id="specialisation" type="text" placeholder="e.g. CSE or AIDS" value={specialisation} onChange={(e) => setSpecialisation(e.target.value)} required disabled={loading} className="bg-black/20 border-white/10 text-white focus-visible:ring-purple-500 placeholder:text-slate-600 h-10" />
+                  <Label htmlFor="specialisation" className="text-slate-700 dark:text-slate-300 text-xs uppercase tracking-wider">Specialisation</Label>
+                  <Input id="specialisation" type="text" placeholder="e.g. CSE or AIDS" value={specialisation} onChange={(e) => setSpecialisation(e.target.value)} required disabled={loading} className="bg-white dark:bg-black/20 border-slate-300 dark:border-white/10 text-slate-900 dark:text-white focus-visible:ring-purple-500 placeholder:text-slate-400 dark:placeholder:text-slate-600 h-10" />
                 </div>
                 <div className="space-y-1.5">
-                  <Label htmlFor="rollno" className="text-slate-300 text-xs uppercase tracking-wider">Roll No</Label>
-                  <Input id="rollno" type="text" placeholder="e.g. 15" value={rollno} onChange={(e) => setRollno(e.target.value)} required disabled={loading} className="bg-black/20 border-white/10 text-white focus-visible:ring-purple-500 placeholder:text-slate-600 h-10" />
+                  <Label htmlFor="rollno" className="text-slate-700 dark:text-slate-300 text-xs uppercase tracking-wider">Roll No</Label>
+                  <Input id="rollno" type="text" placeholder="e.g. 15" value={rollno} onChange={(e) => setRollno(e.target.value)} required disabled={loading} className="bg-white dark:bg-black/20 border-slate-300 dark:border-white/10 text-slate-900 dark:text-white focus-visible:ring-purple-500 placeholder:text-slate-400 dark:placeholder:text-slate-600 h-10" />
                 </div>
               </div>
 
               <div className="space-y-1.5">
-                <Label htmlFor="panel" className="text-slate-300 text-xs uppercase tracking-wider">Panel</Label>
+                <Label htmlFor="panel" className="text-slate-700 dark:text-slate-300 text-xs uppercase tracking-wider">Panel</Label>
                 <Input
                   id="panel"
                   type="text"
@@ -178,12 +178,12 @@ export default function AdminStudents() {
                   onChange={(e) => setPanel(e.target.value)}
                   required
                   disabled={loading}
-                  className="bg-black/20 border-white/10 text-white focus-visible:ring-purple-500 placeholder:text-slate-600 h-10"
+                  className="bg-white dark:bg-black/20 border-slate-300 dark:border-white/10 text-slate-900 dark:text-white focus-visible:ring-purple-500 placeholder:text-slate-400 dark:placeholder:text-slate-600 h-10"
                 />
               </div>
 
               <div className="space-y-1.5">
-                <Label htmlFor="images" className="text-slate-300 text-xs uppercase tracking-wider">
+                <Label htmlFor="images" className="text-slate-700 dark:text-slate-300 text-xs uppercase tracking-wider">
                   Student Images{' '}
                   <span className={`text-xs font-normal ${images.length === REQUIRED_IMAGES ? 'text-teal-400' : 'text-slate-500'}`}>
                     ({images.length}/{REQUIRED_IMAGES} selected)
@@ -198,14 +198,14 @@ export default function AdminStudents() {
                   onChange={handleFileChange}
                   required
                   disabled={loading}
-                  className="bg-black/20 border-white/10 text-slate-300 focus-visible:ring-purple-500 h-10 file:text-white file:bg-white/10 file:border-0 hover:file:bg-white/20 file:mr-4 file:h-full cursor-pointer"
+                  className="bg-white dark:bg-black/20 border-slate-300 dark:border-white/10 text-slate-700 dark:text-slate-300 focus-visible:ring-purple-500 h-10 file:text-white file:bg-white/10 file:border-0 hover:file:bg-white/20 file:mr-4 file:h-full cursor-pointer"
                 />
                 <p className="text-xs text-slate-500 pt-1">Select exactly {REQUIRED_IMAGES} images.</p>
               </div>
 
               <Button
                 type="submit"
-                className="w-full bg-purple-600 hover:bg-purple-500 text-white mt-4 border border-purple-500/50 shadow-[0_0_15px_rgba(147,51,234,0.2)] transition-all duration-300 h-11"
+                className="w-full bg-purple-600 hover:bg-purple-500 text-slate-900 dark:text-white mt-4 border border-purple-500/50 shadow-[0_0_15px_rgba(147,51,234,0.2)] transition-all duration-300 h-11"
                 disabled={loading}
               >
                 {loading ? (

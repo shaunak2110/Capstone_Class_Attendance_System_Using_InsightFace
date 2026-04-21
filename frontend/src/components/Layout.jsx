@@ -1,10 +1,12 @@
 import { Outlet, useNavigate } from 'react-router-dom';
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { LogOut, User, Shield } from 'lucide-react';
+import { LogOut, User, Shield, Moon, Sun } from 'lucide-react';
+import { useTheme } from './ThemeProvider';
 
 export default function Layout() {
   const navigate = useNavigate();
+  const { theme, setTheme } = useTheme();
 
   const privilegeLevel = localStorage.getItem('privilege_level');
   const username = localStorage.getItem('username');
@@ -18,9 +20,9 @@ export default function Layout() {
   };
 
   return (
-    <div className="min-h-screen bg-[#06080F] text-slate-200 selection:bg-purple-500/30 font-sans">
+    <div className="min-h-screen bg-slate-50 dark:bg-[#06080F] text-slate-800 dark:text-slate-200 selection:bg-purple-500/30 font-sans transition-colors duration-300">
       {/* Enhanced Navbar */}
-      <nav className="bg-[#0f1117]/80 backdrop-blur-xl border-b border-white/10 shadow-lg sticky top-0 z-50">
+      <nav className="bg-white/80 dark:bg-[#0f1117]/80 backdrop-blur-xl border-b border-slate-200 dark:border-white/10 shadow-lg sticky top-0 z-50">
         <div className="max-w-[120rem] mx-auto px-6 py-3">
           <div className="flex items-center justify-between">
             {/* Logo and Title */}
@@ -45,11 +47,11 @@ export default function Layout() {
 
             {/* User Profile Section */}
             <div className="flex items-center gap-4">
-              <div className="text-right pr-4 border-r border-white/10 hidden sm:block">
-                <div className="text-sm font-semibold text-slate-200">
+              <div className="text-right pr-4 border-r border-slate-200 dark:border-white/10 hidden sm:block">
+                <div className="text-sm font-semibold text-slate-700 dark:text-slate-200">
                   {username || 'User'}
                 </div>
-                <div className="text-xs text-purple-400 capitalize font-medium flex items-center justify-end gap-1.5 mt-0.5">
+                <div className="text-xs text-indigo-600 dark:text-purple-400 capitalize font-medium flex items-center justify-end gap-1.5 mt-0.5">
                   {privilegeLevel === '2' || privilegeLevel === '1' ? <Shield className="h-3 w-3" /> : <User className="h-3 w-3" />}
                   {roleLabel}
                 </div>
@@ -63,15 +65,30 @@ export default function Layout() {
                 <AvatarFallback className="text-white font-bold text-sm bg-black/20">{avatarLetter}</AvatarFallback>
               </Avatar>
 
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={handleLogout}
-                className="bg-white/5 hover:bg-red-500/10 text-slate-300 hover:text-red-400 border-white/10 hover:border-red-500/30 shadow-lg backdrop-blur-md transition-all duration-300 ml-2"
-              >
-                <LogOut className="h-4 w-4 sm:mr-1.5" />
-                <span className="hidden sm:inline">Logout</span>
-              </Button>
+              <div className="flex items-center gap-2 ml-2">
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
+                  className="rounded-full shadow-md bg-white hover:bg-slate-100 dark:bg-white/5 dark:hover:bg-white/10 dark:text-slate-300 hover:text-indigo-600 dark:hover:text-indigo-400 border border-slate-200 dark:border-white/10 transition-all duration-300 w-10 h-10"
+                >
+                  {theme === 'dark' ? (
+                    <Sun className="h-4 w-4" />
+                  ) : (
+                    <Moon className="h-4 w-4" />
+                  )}
+                </Button>
+
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={handleLogout}
+                  className="bg-white hover:bg-red-50 dark:bg-white/5 dark:hover:bg-red-500/10 text-slate-600 hover:text-red-600 dark:text-slate-300 dark:hover:text-red-400 border-slate-200 dark:border-white/10 hover:border-red-300 dark:hover:border-red-500/30 shadow-md dark:shadow-lg backdrop-blur-md transition-all duration-300"
+                >
+                  <LogOut className="h-4 w-4 sm:mr-1.5" />
+                  <span className="hidden sm:inline">Logout</span>
+                </Button>
+              </div>
             </div>
           </div>
         </div>

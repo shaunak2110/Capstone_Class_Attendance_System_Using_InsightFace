@@ -44,7 +44,7 @@ export default function Login() {
   };
 
   return (
-    <div className="min-h-screen relative flex items-center justify-center p-4 bg-[#06080F] overflow-hidden selection:bg-purple-500/30">
+    <div className="min-h-screen relative flex items-center justify-center p-4 bg-slate-100 dark:bg-[#06080F] overflow-hidden selection:bg-purple-500/30">
 
       {/* Background */}
       <div
@@ -70,8 +70,8 @@ export default function Login() {
 
       {/* Login Card */}
       <Card className="w-full max-w-md relative z-10 
-        bg-black/40 backdrop-blur-2xl 
-        border border-white/10 
+        bg-slate-50 dark:bg-black/40 backdrop-blur-2xl 
+        border border-slate-300 dark:border-white/10 
         shadow-[0_0_40px_rgba(0,0,0,0.6)] 
         rounded-2xl 
         animate-in fade-in zoom-in-95 duration-500"
@@ -80,8 +80,8 @@ export default function Login() {
         <div className="absolute -top-10 -right-10 w-40 h-40 bg-purple-500/20 rounded-full blur-[80px]" />
         <div className="absolute -bottom-10 -left-10 w-40 h-40 bg-indigo-500/20 rounded-full blur-[80px]" />
 
-        <CardHeader className="space-y-1 pb-4 border-b border-white/10">
-          <CardTitle className="text-2xl font-bold text-center text-white">
+        <CardHeader className="space-y-1 pb-4 border-b border-slate-300 dark:border-white/10">
+          <CardTitle className="text-2xl font-bold text-center text-slate-900 dark:text-white">
             Login Portal
           </CardTitle>
         </CardHeader>
@@ -97,7 +97,7 @@ export default function Login() {
 
             {/* Username */}
             <div className="space-y-1.5">
-              <Label className="text-slate-400 text-xs uppercase tracking-wider">
+              <Label className="text-slate-600 dark:text-slate-400 text-xs uppercase tracking-wider">
                 Username
               </Label>
               <Input
@@ -105,7 +105,7 @@ export default function Login() {
                 placeholder="Enter your username"
                 value={username}
                 onChange={(e) => setUsername(e.target.value)}
-                className="bg-white/5 border-white/10 text-white 
+                className="bg-white dark:bg-white/5 border-slate-300 dark:border-white/10 text-slate-900 dark:text-white 
                 placeholder:text-slate-500 
                 focus-visible:ring-indigo-500 
                 h-11 backdrop-blur-md"
@@ -117,7 +117,7 @@ export default function Login() {
             {/* Password */}
             <div className="space-y-1.5">
               <div className="flex justify-between">
-                <Label className="text-slate-400 text-xs uppercase tracking-wider">
+                <Label className="text-slate-600 dark:text-slate-400 text-xs uppercase tracking-wider">
                   Password
                 </Label>
                 <span className="text-xs text-indigo-400 cursor-pointer hover:text-indigo-300">
@@ -130,7 +130,7 @@ export default function Login() {
                 placeholder="••••••••"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                className="bg-white/5 border-white/10 text-white 
+                className="bg-white dark:bg-white/5 border-slate-300 dark:border-white/10 text-slate-900 dark:text-white 
                 placeholder:text-slate-500 
                 focus-visible:ring-indigo-500 
                 h-11 backdrop-blur-md"
@@ -145,7 +145,7 @@ export default function Login() {
             <Button
               type="submit"
               disabled={loading}
-              className="w-full h-11 font-medium text-white 
+              className="w-full h-11 font-medium text-slate-900 dark:text-white 
               bg-indigo-600 hover:bg-indigo-500 
               border border-indigo-500/40 
               shadow-[0_0_20px_rgba(99,102,241,0.4)] 

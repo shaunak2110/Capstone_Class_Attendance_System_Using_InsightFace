@@ -181,7 +181,7 @@ export default function Dashboard() {
   };
 
   return (
-    <div className="relative min-h-[calc(100vh-2rem)] bg-[#0f1117] text-slate-200 p-4 sm:p-8 rounded-xl overflow-hidden font-sans shadow-2xl selection:bg-blue-500/30">
+    <div className="relative min-h-[calc(100vh-2rem)] bg-slate-50 dark:bg-[#0f1117] text-slate-800 dark:text-slate-200 p-4 sm:p-8 rounded-xl overflow-hidden font-sans shadow-2xl selection:bg-blue-500/30">
       {/* Background Effects */}
       <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] rounded-full bg-blue-600/10 blur-[120px] pointer-events-none" />
       <div className="absolute top-[40%] right-[-10%] w-[30%] h-[40%] rounded-full bg-indigo-600/10 blur-[120px] pointer-events-none" />
@@ -189,17 +189,17 @@ export default function Dashboard() {
 
       <div className="relative space-y-8 animate-in fade-in duration-700 z-10 w-full max-w-7xl mx-auto">
         {/* Header */}
-        <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 pb-6 border-b border-white/10">
+        <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 pb-6 border-b border-slate-300 dark:border-white/10">
           <div>
             <h2 className="text-4xl font-extrabold tracking-tight text-transparent bg-clip-text bg-gradient-to-r from-blue-400 via-indigo-400 to-purple-400 mb-2">
               Faculty Dashboard
             </h2>
-            <p className="text-slate-400 text-lg">
+            <p className="text-slate-600 dark:text-slate-400 text-lg">
               Welcome back, <span className="font-semibold text-blue-300">{userName}</span>
             </p>
           </div>
           {(role === '1' || role === '2') && (
-            <Button onClick={() => navigate('/admin-students')} className="bg-white/5 hover:bg-white/10 text-white border border-white/10 shadow-lg backdrop-blur-md transition-all duration-300">
+            <Button onClick={() => navigate('/admin-students')} className="bg-white dark:bg-white/5 hover:bg-slate-200 dark:hover:bg-white/10 text-slate-900 dark:text-white border border-slate-300 dark:border-white/10 shadow-lg backdrop-blur-md transition-all duration-300">
               <Users className="mr-2 h-4 w-4 text-blue-400" />
               Manage Students
             </Button>
@@ -214,16 +214,16 @@ export default function Dashboard() {
 
         <div className="grid gap-8 lg:grid-cols-2">
           {/* Lecture Selection Card */}
-          <Card className="bg-white/5 border-white/10 backdrop-blur-xl shadow-xl hover:bg-white/[0.07] transition-all duration-300 flex flex-col relative overflow-hidden">
+          <Card className="bg-white dark:bg-white/5 border-slate-300 dark:border-white/10 backdrop-blur-xl shadow-xl hover:bg-slate-100 dark:hover:bg-white/[0.07] transition-all duration-300 flex flex-col relative overflow-hidden">
             <div className="absolute top-0 right-0 w-32 h-32 bg-blue-500/10 rounded-full blur-[50px] pointer-events-none" />
-            <CardHeader className="border-b border-white/5 pb-4">
-              <CardTitle className="text-white flex items-center gap-3">
+            <CardHeader className="border-b border-slate-200 dark:border-white/5 pb-4">
+              <CardTitle className="text-slate-900 dark:text-white flex items-center gap-3">
                 <div className="bg-blue-500/20 text-blue-400 p-2.5 rounded-lg border border-blue-500/20 shadow-[0_0_15px_rgba(59,130,246,0.15)]">
                   <BookOpen className="h-5 w-5" />
                 </div>
                 Lecture Configuration
               </CardTitle>
-              <CardDescription className="text-slate-400 pt-1">Select the lecture to initialize attendance marking.</CardDescription>
+              <CardDescription className="text-slate-600 dark:text-slate-400 pt-1">Select the lecture to initialize attendance marking.</CardDescription>
             </CardHeader>
             <CardContent className="pt-6 flex-1">
               {lecturesLoading ? (
@@ -238,7 +238,7 @@ export default function Dashboard() {
               ) : (
                 <div className="space-y-6">
                   <div className="space-y-2">
-                    <Label className="text-slate-300 text-xs uppercase tracking-wider">Select Lecture</Label>
+                    <Label className="text-slate-700 dark:text-slate-300 text-xs uppercase tracking-wider">Select Lecture</Label>
                     <Select value={selectedLecId} onValueChange={(val) => {
                       setSelectedLecId(val);
                       const dt = new Date();
@@ -246,15 +246,15 @@ export default function Dashboard() {
                       const localISOTime = (new Date(dt - tzOffset)).toISOString().slice(0, 16);
                       setManualDatetime(localISOTime);
                     }}>
-                      <SelectTrigger className="bg-black/20 border-white/10 text-white focus:ring-blue-500 h-12">
+                      <SelectTrigger className="bg-white dark:bg-black/20 border-slate-300 dark:border-white/10 text-slate-900 dark:text-white focus:ring-blue-500 h-12">
                         <SelectValue placeholder="Choose a lecture..." />
                       </SelectTrigger>
-                      <SelectContent className="bg-slate-900 border-white/10 text-white">
+                      <SelectContent className="bg-slate-900 border-slate-300 dark:border-white/10 text-slate-900 dark:text-white">
                         {lectures.map((lec) => (
                           <SelectItem
                             key={lec.lec_id}
                             value={String(lec.lec_id)}
-                            className="cursor-pointer hover:bg-white/10 focus:bg-white/10"
+                            className="cursor-pointer hover:bg-slate-200 dark:hover:bg-white/10 focus:bg-white/10"
                           >
                             {lec.lec_name} — {lec.year} ({lec.specialisation}) — {lec.panel}
                           </SelectItem>
@@ -265,12 +265,12 @@ export default function Dashboard() {
 
                   {selectedLecId && (
                     <div className="space-y-2 animate-in fade-in duration-300 slide-in-from-top-4">
-                      <Label className="text-slate-300 text-xs uppercase tracking-wider">Date & Time override</Label>
+                      <Label className="text-slate-700 dark:text-slate-300 text-xs uppercase tracking-wider">Date & Time override</Label>
                       <Input
                         type="datetime-local"
                         value={manualDatetime}
                         onChange={(e) => setManualDatetime(e.target.value)}
-                        className="bg-black/20 border-white/10 text-white focus-visible:ring-blue-500 h-11 [color-scheme:dark]"
+                        className="bg-white dark:bg-black/20 border-slate-300 dark:border-white/10 text-slate-900 dark:text-white focus-visible:ring-blue-500 h-11 [color-scheme:dark]"
                       />
                     </div>
                   )}
@@ -280,16 +280,16 @@ export default function Dashboard() {
           </Card>
 
           {/* Upload Card */}
-          <Card className="bg-white/5 border-white/10 backdrop-blur-xl shadow-xl hover:bg-white/[0.07] transition-all duration-300 flex flex-col relative overflow-hidden">
+          <Card className="bg-white dark:bg-white/5 border-slate-300 dark:border-white/10 backdrop-blur-xl shadow-xl hover:bg-slate-100 dark:hover:bg-white/[0.07] transition-all duration-300 flex flex-col relative overflow-hidden">
             <div className="absolute top-0 right-0 w-32 h-32 bg-purple-500/10 rounded-full blur-[50px] pointer-events-none" />
-            <CardHeader className="border-b border-white/5 pb-4">
-              <CardTitle className="text-white flex items-center gap-3">
+            <CardHeader className="border-b border-slate-200 dark:border-white/5 pb-4">
+              <CardTitle className="text-slate-900 dark:text-white flex items-center gap-3">
                 <div className="bg-purple-500/20 text-purple-400 p-2.5 rounded-lg border border-purple-500/20 shadow-[0_0_15px_rgba(168,85,247,0.15)]">
                   <Camera className="h-5 w-5" />
                 </div>
                 Acquire Proof
               </CardTitle>
-              <CardDescription className="text-slate-400 pt-1">Upload images or activate the camera to capture attendance.</CardDescription>
+              <CardDescription className="text-slate-600 dark:text-slate-400 pt-1">Upload images or activate the camera to capture attendance.</CardDescription>
             </CardHeader>
             <CardContent className="pt-6 flex-grow flex flex-col space-y-6">
 
@@ -302,32 +302,32 @@ export default function Dashboard() {
                   className="hidden"
                   onChange={handleFileChange}
                 />
-                <Button type="button" onClick={() => fileInputRef.current?.click()} className="flex-1 bg-white/10 hover:bg-white/20 text-white border border-white/10 shadow-lg h-12 transition-all">
+                <Button type="button" onClick={() => fileInputRef.current?.click()} className="flex-1 bg-slate-200 dark:bg-white/10 hover:bg-slate-300 dark:hover:bg-white/20 text-slate-900 dark:text-white border border-slate-300 dark:border-white/10 shadow-lg h-12 transition-all">
                   <UploadCloud className="mr-2 h-4 w-4 text-indigo-400" /> Upload Images
                 </Button>
-                <Button type="button" onClick={isCameraOpen ? stopCamera : startCamera} className={`flex-1 h-12 transition-all shadow-lg ${isCameraOpen ? 'bg-red-500/20 hover:bg-red-500/30 text-white border border-red-500/30' : 'bg-white/10 hover:bg-white/20 text-white border border-white/10'}`}>
+                <Button type="button" onClick={isCameraOpen ? stopCamera : startCamera} className={`flex-1 h-12 transition-all shadow-lg ${isCameraOpen ? 'bg-red-500/20 hover:bg-red-500/30 text-slate-900 dark:text-white border border-red-500/30' : 'bg-slate-200 dark:bg-white/10 hover:bg-slate-300 dark:hover:bg-white/20 text-slate-900 dark:text-white border border-slate-300 dark:border-white/10'}`}>
                   {isCameraOpen ? <X className="mr-2 h-4 w-4 text-red-400" /> : <Camera className="mr-2 h-4 w-4 text-indigo-400" />}
                   {isCameraOpen ? 'Close Camera' : 'Live Camera'}
                 </Button>
               </div>
 
               {isCameraOpen && (
-                <div className="relative rounded-xl overflow-hidden border border-white/10 bg-black/50 shadow-2xl animate-in zoom-in-95 duration-300">
+                <div className="relative rounded-xl overflow-hidden border border-slate-300 dark:border-white/10 bg-slate-200 dark:bg-black/50 shadow-2xl animate-in zoom-in-95 duration-300">
                   <video autoPlay playsInline ref={videoRef} className="w-full h-auto max-h-[350px] object-cover" />
                   <canvas ref={canvasRef} className="hidden" />
-                  <Button type="button" onClick={captureImage} className="absolute bottom-4 left-1/2 -translate-x-1/2 bg-purple-600 hover:bg-purple-500 text-white rounded-full px-8 shadow-[0_0_20px_rgba(168,85,247,0.4)] border border-purple-400/50">
+                  <Button type="button" onClick={captureImage} className="absolute bottom-4 left-1/2 -translate-x-1/2 bg-purple-600 hover:bg-purple-500 text-slate-900 dark:text-white rounded-full px-8 shadow-[0_0_20px_rgba(168,85,247,0.4)] border border-purple-400/50">
                     <Camera className="mr-2 h-4 w-4" /> Snap Photo
                   </Button>
                 </div>
               )}
 
               {selectedFiles.length > 0 && (
-                <div className="grid grid-cols-4 gap-3 bg-black/20 border border-white/5 p-3 rounded-xl max-h-[200px] overflow-y-auto custom-scrollbar animate-in fade-in">
+                <div className="grid grid-cols-4 gap-3 bg-white dark:bg-black/20 border border-slate-200 dark:border-white/5 p-3 rounded-xl max-h-[200px] overflow-y-auto custom-scrollbar animate-in fade-in">
                   {selectedFiles.map((file, idx) => (
-                    <div key={idx} className="relative aspect-square rounded-lg overflow-hidden group shadow-lg border border-white/10">
+                    <div key={idx} className="relative aspect-square rounded-lg overflow-hidden group shadow-lg border border-slate-300 dark:border-white/10">
                       <img src={URL.createObjectURL(file)} alt="preview" className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110" />
-                      <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-                        <button type="button" onClick={() => removeImage(idx)} className="bg-red-500/80 hover:bg-red-500 text-white rounded-full p-2 backdrop-blur-sm transform transition hover:scale-110">
+                      <div className="absolute inset-0 bg-slate-50 dark:bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                        <button type="button" onClick={() => removeImage(idx)} className="bg-red-500/80 hover:bg-red-500 text-slate-900 dark:text-white rounded-full p-2 backdrop-blur-sm transform transition hover:scale-110">
                           <X className="h-4 w-4" />
                         </button>
                       </div>
@@ -339,7 +339,7 @@ export default function Dashboard() {
               <form onSubmit={handleSubmit} className="mt-auto">
                 <Button
                   type="submit"
-                  className="w-full bg-blue-600 hover:bg-blue-500 text-white h-12 shadow-[0_0_20px_rgba(37,99,235,0.3)] border border-blue-500/50 transition-all duration-300 font-medium text-lg"
+                  className="w-full bg-blue-600 hover:bg-blue-500 text-slate-900 dark:text-white h-12 shadow-[0_0_20px_rgba(37,99,235,0.3)] border border-blue-500/50 transition-all duration-300 font-medium text-lg"
                   disabled={loading || lecturesLoading || selectedFiles.length === 0}
                 >
                   {loading ? (
@@ -358,29 +358,29 @@ export default function Dashboard() {
         </div>
 
         {/* Attendance Records Section */}
-        <Card className="bg-[#1a1d27] border border-white/10 shadow-2xl relative overflow-hidden">
-          <CardHeader className="bg-black/20 border-b border-white/5 pb-5">
-            <CardTitle className="text-white flex items-center gap-3">
+        <Card className="bg-white dark:bg-[#1a1d27] border border-slate-300 dark:border-white/10 shadow-2xl relative overflow-hidden">
+          <CardHeader className="bg-white dark:bg-black/20 border-b border-slate-200 dark:border-white/5 pb-5">
+            <CardTitle className="text-slate-900 dark:text-white flex items-center gap-3">
               <div className="bg-indigo-500/20 text-indigo-400 p-2 rounded-lg border border-indigo-500/20">
                 <FileText className="h-5 w-5" />
               </div>
               Archive & Logs
             </CardTitle>
-            <CardDescription className="text-slate-400 pt-1">Query historical attendance metrics, export records, and cross-reference dates.</CardDescription>
+            <CardDescription className="text-slate-600 dark:text-slate-400 pt-1">Query historical attendance metrics, export records, and cross-reference dates.</CardDescription>
           </CardHeader>
           <CardContent className="pt-6 space-y-6">
 
             {/* Filters Row */}
             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-5 items-end">
               <div className="space-y-2">
-                <Label className="text-slate-300 text-xs uppercase tracking-wider">Lecture Target</Label>
+                <Label className="text-slate-700 dark:text-slate-300 text-xs uppercase tracking-wider">Lecture Target</Label>
                 <Select value={recLecId} onValueChange={setRecLecId}>
-                  <SelectTrigger className="bg-black/30 border-white/10 text-white focus:ring-indigo-500 h-11">
+                  <SelectTrigger className="bg-slate-100 dark:bg-black/30 border-slate-300 dark:border-white/10 text-slate-900 dark:text-white focus:ring-indigo-500 h-11">
                     <SelectValue placeholder="Select context" />
                   </SelectTrigger>
-                  <SelectContent className="bg-slate-900 border-white/10 text-white">
+                  <SelectContent className="bg-slate-900 border-slate-300 dark:border-white/10 text-slate-900 dark:text-white">
                     {lectures.map((lec) => (
-                      <SelectItem key={lec.lec_id} value={String(lec.lec_id)} className="cursor-pointer hover:bg-white/10">
+                      <SelectItem key={lec.lec_id} value={String(lec.lec_id)} className="cursor-pointer hover:bg-slate-200 dark:hover:bg-white/10">
                         {lec.lec_name} — {lec.year} ({lec.specialisation}) — {lec.panel}
                       </SelectItem>
                     ))}
@@ -389,29 +389,29 @@ export default function Dashboard() {
               </div>
 
               <div className="space-y-2">
-                <Label className="text-slate-300 text-xs uppercase tracking-wider">Start Date</Label>
+                <Label className="text-slate-700 dark:text-slate-300 text-xs uppercase tracking-wider">Start Date</Label>
                 <Input
                   type="date"
                   value={recDateFrom}
                   onChange={e => setRecDateFrom(e.target.value)}
-                  className="bg-black/30 border-white/10 text-white focus-visible:ring-indigo-500 h-11 [color-scheme:dark]"
+                  className="bg-slate-100 dark:bg-black/30 border-slate-300 dark:border-white/10 text-slate-900 dark:text-white focus-visible:ring-indigo-500 h-11 [color-scheme:dark]"
                 />
               </div>
 
               <div className="space-y-2">
-                <Label className="text-slate-300 text-xs uppercase tracking-wider">End Date</Label>
+                <Label className="text-slate-700 dark:text-slate-300 text-xs uppercase tracking-wider">End Date</Label>
                 <Input
                   type="date"
                   value={recDateTo}
                   onChange={e => setRecDateTo(e.target.value)}
-                  className="bg-black/30 border-white/10 text-white focus-visible:ring-indigo-500 h-11 [color-scheme:dark]"
+                  className="bg-slate-100 dark:bg-black/30 border-slate-300 dark:border-white/10 text-slate-900 dark:text-white focus-visible:ring-indigo-500 h-11 [color-scheme:dark]"
                 />
               </div>
 
               <Button
                 onClick={fetchRecords}
                 disabled={recLoading || !recLecId}
-                className="bg-white/10 hover:bg-white/20 text-white border border-white/10 h-11 shadow-lg backdrop-blur-md"
+                className="bg-slate-200 dark:bg-white/10 hover:bg-slate-300 dark:hover:bg-white/20 text-slate-900 dark:text-white border border-slate-300 dark:border-white/10 h-11 shadow-lg backdrop-blur-md"
               >
                 {recLoading ? <Activity className="mr-2 h-4 w-4 animate-spin" /> : <ChevronDown className="mr-2 h-4 w-4 text-indigo-400" />}
                 {recLoading ? 'Extracting...' : 'Fetch Logs'}
@@ -427,51 +427,51 @@ export default function Dashboard() {
             {/* Records Table */}
             {recFetched && (
               <div className="space-y-4 animate-in fade-in duration-500">
-                <div className="flex flex-wrap items-center justify-between gap-4 p-4 rounded-xl bg-black/20 border border-white/5">
-                  <p className="text-sm text-slate-400">
-                    <strong className="text-white text-lg">{records.length}</strong> record{records.length !== 1 ? 's' : ''} retrieved
+                <div className="flex flex-wrap items-center justify-between gap-4 p-4 rounded-xl bg-white dark:bg-black/20 border border-slate-200 dark:border-white/5">
+                  <p className="text-sm text-slate-600 dark:text-slate-400">
+                    <strong className="text-slate-900 dark:text-white text-lg">{records.length}</strong> record{records.length !== 1 ? 's' : ''} retrieved
                     {records.length > 0 && (
-                      <span className="ml-3 border-l border-white/10 pl-3">
+                      <span className="ml-3 border-l border-slate-300 dark:border-white/10 pl-3">
                         <span className="text-emerald-400 font-semibold">{records.filter(r => r.status === 'Present').length} Present</span> <span className="text-slate-500 mx-1">•</span> <span className="text-rose-400 font-semibold">{records.filter(r => r.status === 'Absent').length} Absent</span>
                       </span>
                     )}
                   </p>
                   {records.length > 0 && (
-                    <Button variant="outline" size="sm" onClick={handleDownloadCsv} className="bg-black/40 hover:bg-black/60 text-indigo-300 border-indigo-500/30 gap-2">
+                    <Button variant="outline" size="sm" onClick={handleDownloadCsv} className="bg-slate-50 dark:bg-black/40 hover:bg-black/60 text-indigo-300 border-indigo-500/30 gap-2">
                       <Download className="h-4 w-4" /> Export CSV
                     </Button>
                   )}
                 </div>
 
                 {records.length === 0 ? (
-                  <div className="text-center py-16 text-slate-500 bg-black/10 rounded-xl border border-white/5">
+                  <div className="text-center py-16 text-slate-500 bg-slate-50 dark:bg-black/10 rounded-xl border border-slate-200 dark:border-white/5">
                     <FileText className="mx-auto h-12 w-12 mb-4 opacity-20" />
                     <p className="text-lg">No logs found matching your criteria.</p>
                   </div>
                 ) : (
-                  <div className="rounded-xl border border-white/10 overflow-hidden bg-black/20 shadow-inner">
+                  <div className="rounded-xl border border-slate-300 dark:border-white/10 overflow-hidden bg-white dark:bg-black/20 shadow-inner">
                     <table className="w-full text-sm text-left">
-                      <thead className="bg-black/40 border-b border-white/10">
+                      <thead className="bg-slate-50 dark:bg-black/40 border-b border-slate-300 dark:border-white/10">
                         <tr>
-                          <th className="px-5 py-4 font-semibold text-slate-400 uppercase tracking-wider text-xs">Scholar Identity</th>
-                          <th className="px-5 py-4 font-semibold text-slate-400 uppercase tracking-wider text-xs">Credentials</th>
-                          <th className="px-5 py-4 font-semibold text-slate-400 uppercase tracking-wider text-xs">Lecture Target</th>
-                          <th className="px-5 py-4 font-semibold text-slate-400 uppercase tracking-wider text-xs">Timestamp</th>
-                          <th className="px-5 py-4 font-semibold text-slate-400 uppercase tracking-wider text-xs w-32">Status Check</th>
+                          <th className="px-5 py-4 font-semibold text-slate-600 dark:text-slate-400 uppercase tracking-wider text-xs">Scholar Identity</th>
+                          <th className="px-5 py-4 font-semibold text-slate-600 dark:text-slate-400 uppercase tracking-wider text-xs">Credentials</th>
+                          <th className="px-5 py-4 font-semibold text-slate-600 dark:text-slate-400 uppercase tracking-wider text-xs">Lecture Target</th>
+                          <th className="px-5 py-4 font-semibold text-slate-600 dark:text-slate-400 uppercase tracking-wider text-xs">Timestamp</th>
+                          <th className="px-5 py-4 font-semibold text-slate-600 dark:text-slate-400 uppercase tracking-wider text-xs w-32">Status Check</th>
                         </tr>
                       </thead>
                       <tbody className="divide-y divide-white/5">
                         {records.map((r, idx) => (
-                          <tr key={idx} className="hover:bg-white/5 transition-colors duration-200">
+                          <tr key={idx} className="hover:bg-slate-100 dark:hover:bg-white/5 transition-colors duration-200">
                             <td className="px-5 py-4">
-                              <span className="font-semibold text-slate-200 block">{r.name}</span>
+                              <span className="font-semibold text-slate-800 dark:text-slate-200 block">{r.name}</span>
                             </td>
                             <td className="px-5 py-4">
-                              <span className="text-slate-300 font-mono block">{r.rollno}</span>
+                              <span className="text-slate-700 dark:text-slate-300 font-mono block">{r.rollno}</span>
                               <span className="text-slate-500 font-mono text-[10px] mt-0.5 block">{r.prn}</span>
                             </td>
-                            <td className="px-5 py-4 text-slate-300">{r.lec_name}</td>
-                            <td className="px-5 py-4 text-slate-400 text-xs bg-black/20 rounded-md my-2 mr-4 inline-block px-2 py-1 shadow-sm border border-white/5">{formatDateTime(r.lecture_datetime)}</td>
+                            <td className="px-5 py-4 text-slate-700 dark:text-slate-300">{r.lec_name}</td>
+                            <td className="px-5 py-4 text-slate-600 dark:text-slate-400 text-xs bg-white dark:bg-black/20 rounded-md my-2 mr-4 inline-block px-2 py-1 shadow-sm border border-slate-200 dark:border-white/5">{formatDateTime(r.lecture_datetime)}</td>
                             <td className="px-5 py-4">
                               {r.status === 'Present' ?
                                 <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-[11px] font-bold uppercase tracking-wider bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 shadow-[0_0_10px_rgba(16,185,129,0.1)]"><CheckCircle className="w-3 h-3" /> Present</span> :
