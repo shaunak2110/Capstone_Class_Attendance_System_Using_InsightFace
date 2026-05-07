@@ -7,11 +7,43 @@ level — works on plain Linux containers (Render Python runtime).
 
 import os
 import re
+import time
+import logging
 import pymssql
 from typing import Optional, List, Tuple, Any
 from dotenv import load_dotenv
 
 load_dotenv()
+
+logger = logging.getLogger(__name__)
+
+# Azure SQL transient error codes that signal "retry, the DB is waking up".
+_TRANSIENT_CODES = ("40613", "40197", "40501", "49918", "49919", "49920", "10928", "10929")
+
+
+def _is_transient_error(exc: pymssql.Error) -> bool:
+    msg = str(exc)
+    if any(code in msg for code in _TRANSIENT_CODES):
+        return True
+    if "Adaptive Server connection failed" in msg:
+        return True
+    return False
+
+
+def _connect_with_retry(max_attempts: int = 4, **kwargs):
+    """pymssql.connect with backoff on Azure SQL Serverless warm-up errors."""
+    for attempt in range(max_attempts):
+        try:
+            return pymssql.connect(**kwargs)
+        except pymssql.Error as e:
+            if attempt == max_attempts - 1 or not _is_transient_error(e):
+                raise
+            wait = 3 * (2 ** attempt)  # 3s, 6s, 12s
+            logger.warning(
+                "DB connect transient error (attempt %d/%d): %s. Retrying in %ds.",
+                attempt + 1, max_attempts, e, wait,
+            )
+            time.sleep(wait)
 
 
 def _parse_connection_string(conn_str: str) -> dict:
@@ -61,7 +93,7 @@ def get_db_connection():
     conn_str = os.getenv("DB_CONNECTION_STRING")
     if conn_str:
         try:
-            return pymssql.connect(**_parse_connection_string(conn_str))
+            return _connect_with_retry(**_parse_connection_string(conn_str))
         except pymssql.Error as e:
             raise pymssql.Error(
                 f"Failed to connect using DB_CONNECTION_STRING. Error: {str(e)}"
@@ -83,7 +115,7 @@ def get_db_connection():
         )
 
     try:
-        return pymssql.connect(
+        return _connect_with_retry(
             server=server, user=user, password=password, database=database
         )
     except pymssql.Error as e:
