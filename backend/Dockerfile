@@ -1,10 +1,14 @@
 FROM python:3.11-slim
 
-# System deps for opencv-python-headless and onnxruntime
+# Runtime libs (opencv-headless, onnxruntime) + build tools so insightface's
+# Cython extension (mesh_core_cython) compiles from source on slim images.
 RUN apt-get update && apt-get install -y --no-install-recommends \
         libglib2.0-0 \
         libgomp1 \
         curl \
+        gcc \
+        g++ \
+        python3-dev \
     && rm -rf /var/lib/apt/lists/*
 
 # HF Spaces runs containers as a non-root user (UID 1000). Create one and
