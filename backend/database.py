@@ -34,7 +34,7 @@ def _connect_with_retry(max_attempts: int = 4, **kwargs):
     """pymssql.connect with backoff on Azure SQL Serverless warm-up errors."""
     for attempt in range(max_attempts):
         try:
-            return pymssql.connect(**kwargs)
+            return _RowConnection(pymssql.connect(**kwargs))
         except pymssql.Error as e:
             if attempt == max_attempts - 1 or not _is_transient_error(e):
                 raise
@@ -44,6 +44,123 @@ def _connect_with_retry(max_attempts: int = 4, **kwargs):
                 attempt + 1, max_attempts, e, wait,
             )
             time.sleep(wait)
+
+
+# ---------------------------------------------------------------------------
+# pyodbc.Row compatibility layer
+#
+# pyodbc returns rows that support both index access (row[0]) and attribute
+# access (row.user_id). pymssql returns plain tuples. The route handlers across
+# auth.py / admin.py / user.py rely on row.column_name. Wrap pymssql cursors so
+# fetchall/fetchone return objects that support both shapes.
+# ---------------------------------------------------------------------------
+
+class _Row:
+    __slots__ = ("_cols", "_values")
+
+    def __init__(self, cols, values):
+        object.__setattr__(self, "_cols", cols)
+        object.__setattr__(self, "_values", values)
+
+    def __getattr__(self, name):
+        cols = object.__getattribute__(self, "_cols")
+        try:
+            i = cols.index(name)
+        except ValueError:
+            raise AttributeError(name)
+        return self._values[i]
+
+    def __getitem__(self, key):
+        if isinstance(key, str):
+            return getattr(self, key)
+        return self._values[key]
+
+    def __iter__(self):
+        return iter(self._values)
+
+    def __len__(self):
+        return len(self._values)
+
+    def __repr__(self):
+        return f"Row({dict(zip(self._cols, self._values))})"
+
+
+class _RowCursor:
+    def __init__(self, cursor):
+        self._cursor = cursor
+
+    def _wrap_one(self, row):
+        if row is None or not self._cursor.description:
+            return row
+        cols = [d[0] for d in self._cursor.description]
+        return _Row(cols, row)
+
+    def execute(self, *args, **kwargs):
+        return self._cursor.execute(*args, **kwargs)
+
+    def executemany(self, *args, **kwargs):
+        return self._cursor.executemany(*args, **kwargs)
+
+    def fetchall(self):
+        rows = self._cursor.fetchall()
+        if not rows or not self._cursor.description:
+            return rows
+        cols = [d[0] for d in self._cursor.description]
+        return [_Row(cols, r) for r in rows]
+
+    def fetchone(self):
+        return self._wrap_one(self._cursor.fetchone())
+
+    def fetchmany(self, size=None):
+        rows = self._cursor.fetchmany(size) if size is not None else self._cursor.fetchmany()
+        if not rows or not self._cursor.description:
+            return rows
+        cols = [d[0] for d in self._cursor.description]
+        return [_Row(cols, r) for r in rows]
+
+    def close(self):
+        return self._cursor.close()
+
+    @property
+    def description(self):
+        return self._cursor.description
+
+    @property
+    def rowcount(self):
+        return self._cursor.rowcount
+
+    @property
+    def lastrowid(self):
+        return self._cursor.lastrowid
+
+    def __iter__(self):
+        return self
+
+    def __next__(self):
+        row = self.fetchone()
+        if row is None:
+            raise StopIteration
+        return row
+
+
+class _RowConnection:
+    def __init__(self, conn):
+        self._conn = conn
+
+    def cursor(self, *args, **kwargs):
+        return _RowCursor(self._conn.cursor(*args, **kwargs))
+
+    def commit(self):
+        return self._conn.commit()
+
+    def rollback(self):
+        return self._conn.rollback()
+
+    def close(self):
+        return self._conn.close()
+
+    def __getattr__(self, name):
+        return getattr(self._conn, name)
 
 
 def _parse_connection_string(conn_str: str) -> dict:
