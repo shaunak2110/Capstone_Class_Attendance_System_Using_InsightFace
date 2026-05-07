@@ -27,7 +27,11 @@ def _parse_connection_string(conn_str: str) -> dict:
         if not piece or "=" not in piece:
             continue
         key, _, val = piece.partition("=")
-        parts[key.strip().lower()] = val.strip()
+        val = val.strip()
+        # Strip ODBC-style braces around values (e.g. Pwd={p@ss;word}).
+        if len(val) >= 2 and val.startswith("{") and val.endswith("}"):
+            val = val[1:-1]
+        parts[key.strip().lower()] = val
 
     server = parts.get("server", "")
     port = None
