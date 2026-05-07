@@ -1,46 +1,49 @@
-﻿# Classroom Attendance System
 # Classroom Attendance System
 
-Face-recognition-based attendance management system.
+Face-recognition-based attendance management system using InsightFace ArcFace embeddings.
 
-**Backend:** FastAPI (Python) | **Frontend:** React + Vite | **AI:** InsightFace buffalo_l (ArcFace, ONNX) | **Database:** SQL Server (Windows Auth)
+| Layer | Stack | Production host |
+|---|---|---|
+| Frontend | React 18 + Vite | **Vercel** — https://capstone-class-attendance-system-us.vercel.app |
+| Backend | FastAPI + Python 3.11 | **Hugging Face Spaces (Docker)** — https://Shaunak2110-attendance-backend.hf.space |
+| Database | SQL Server (T-SQL) | **Azure SQL Serverless** |
+| Face recognition | InsightFace `buffalo_l` (ArcFace, ONNX Runtime) | Bundled in backend container |
 
-> See `CREDENTIALS.md` for all login credentials and the complete fresh-start guide.
+> Live deployment runs from the **`deploy-clean`** branch — slimmed for cloud (no torch/ultralytics, pymssql instead of pyodbc, Dockerfile for HF). The `main` branch retains the original local-dev setup.
+
+> See `CREDENTIALS.md` for default login + the fresh-start guide. See `deployment.md` for full cloud deployment instructions.
 
 ---
 
 ## Table of Contents
 
-1. [Quick Start](#quick-start)
-2. [Project Structure](#project-structure)
-3. [Architecture Overview](#architecture-overview)
-4. [Database Schema](#database-schema)
-5. [Environment Configuration](#environment-configuration)
-6. [API Reference](#api-reference)
-7. [Frontend Pages](#frontend-pages)
-8. [Privilege and Auth System](#privilege-and-auth-system)
-9. [Face Recognition Pipeline](#face-recognition-pipeline)
-10. [Timetable Feature](#timetable-feature)
-11. [Recent Changes and Fixes](#recent-changes-and-fixes)
-12. [Running the Application](#running-the-application)
-13. [Testing](#testing)
-14. [Troubleshooting](#troubleshooting)
+1. [Quick Start (Local)](#quick-start-local)
+2. [Quick Start (Cloud)](#quick-start-cloud)
+3. [Project Structure](#project-structure)
+4. [Architecture Overview](#architecture-overview)
+5. [Database Schema](#database-schema)
+6. [Environment Configuration](#environment-configuration)
+7. [API Reference](#api-reference)
+8. [Frontend Pages](#frontend-pages)
+9. [Privilege and Auth System](#privilege-and-auth-system)
+10. [Face Recognition Pipeline](#face-recognition-pipeline)
+11. [Timetable Feature](#timetable-feature)
+12. [Cloud Deployment Notes](#cloud-deployment-notes)
+13. [Running the Application](#running-the-application)
+14. [Testing](#testing)
+15. [Troubleshooting](#troubleshooting)
 
 ---
 
-## Quick Start
+## Quick Start (Local)
 
-### 1. Database Setup (run once in SSMS)
+### 1. Database (run once in SSMS)
 
 ```sql
--- Step 1: Create all tables
-Full Database Query.sql
-
--- Step 2: Add timetable support
-timetable_setup.sql
-
--- Step 3: Seed default superadmin
-usernamepsswd.sql
+-- Run in this order against a fresh AttendanceDB:
+1. Full Database Query.sql   -- All tables, indexes, constraints
+2. timetable_setup.sql        -- Lecture_Schedule + schedule_id FK
+3. usernamepsswd.sql          -- Default Superadmin seed
 ```
 
 ### 2. Backend
@@ -59,54 +62,100 @@ npm install --legacy-peer-deps
 npm run dev
 ```
 
-Open **http://localhost:5173**
+Open **http://localhost:5173**. Login: `superadmin@mitwpu.edu.in` / `Super@admin`.
 
-Default login: `superadmin@mitwpu.edu.in` / `Super@admin`
+---
+
+## Quick Start (Cloud)
+
+The system is already deployed. To use the live app:
+
+1. Open **https://capstone-class-attendance-system-us.vercel.app**
+2. Login with `superadmin@mitwpu.edu.in` / `Super@admin`
+3. First request after idle may take 30–90 s (Azure SQL Serverless wake + InsightFace model download on cold start)
+
+To deploy your own copy, see [`deployment.md`](deployment.md).
 
 ---
 
 ## Project Structure
 
-See `structure.txt` for the full annotated file tree.
-
-Key directories:
-
 ```
 backend/
-  main.py              FastAPI app entry point
-  auth.py              Authentication
-  admin.py             Admin endpoints
-  user.py              Teacher endpoints
-  superadmin.py        Superadmin endpoints
-  model/               InsightFace engine + adapter
-  services/            Recognition, training, CSV services
+  main.py                FastAPI entry point + CORS + exception handlers
+  auth.py                /auth/login endpoint
+  admin.py               /admin/* — manage teachers, students, schedules
+  user.py                /user/* — teacher attendance flow
+  superadmin.py          /superadmin/* — manage admins, approve requests
+  database.py            pymssql connection wrapper + Row compatibility layer
+  dependencies.py        require_privilege, get_current_user_id
+  model/
+    insightface_engine.py   FaceAnalysis(buffalo_l) wrapper
+    inference.py            Recognition orchestration
+  services/
+    recognition_service.py  Orchestrates mark-attendance flow
+    training_service.py     Enrollment / incremental embedding append
+    csv_service.py          Attendance CSV generation + download
+  Dockerfile             Used by Hugging Face Spaces
+  README.md              HF Space metadata frontmatter
+  Procfile               Used by Render (legacy / paid plan)
+  runtime.txt            Python version pin
 
-frontend/src/
-  pages/               All UI pages
-  services/api.js      All API functions (27 total)
-  components/          Layout, ProtectedRoute, UI primitives
+frontend/
+  src/
+    pages/               All UI pages
+    services/api.js      27 API functions
+    components/          Layout, ProtectedRoute, UI primitives
+  vercel.json            SPA rewrites
+  vite.config.js         Dev proxy + build config
+
+Full Database Query.sql  Local SQL Server schema (uses USE)
+azure_migration.sql      Azure SQL schema (no USE, idempotent)
+timetable_setup.sql      Lecture_Schedule additions
+usernamepsswd.sql        Superadmin seed insert
+deployment.md            Full cloud deployment guide
+CREDENTIALS.md           Account credentials + fresh-start guide
 ```
 
 ---
 
 ## Architecture Overview
 
+### Local (development)
+
 ```
 Browser (React/Vite :5173)
-        |  HTTP via Vite proxy
+        | HTTP via Vite proxy → /auth, /admin, /user, /superadmin
         v
-FastAPI (:8000)
-  |-- /auth          auth.py
-  |-- /admin         admin.py
-  |-- /user          user.py
-  `-- /superadmin    superadmin.py
+FastAPI (uvicorn :8000)
         |
-        |-- SQL Server (Windows Auth)
-        |     `-- AttendanceDB
+        |── SQL Server (Windows Auth or SQL Auth)
+        |     └── AttendanceDB
         |
-        `-- InsightFace buffalo_l (ONNX)
-              |-- det_10g.onnx      (face detection)
-              `-- w600k_r50.onnx    (ArcFace 512-dim embedding)
+        └── InsightFace buffalo_l (ONNX Runtime)
+               ├── det_10g.onnx          (face detection)
+               └── w600k_r50.onnx        (ArcFace 512-dim embedding)
+```
+
+### Production (deployed)
+
+```
+Browser
+   |
+   | HTTPS
+   v
+Vercel CDN ── serves React SPA (built with VITE_API_URL baked in)
+   |
+   | XHR to backend URL
+   v
+HuggingFace Spaces (Docker, 2 vCPU, 16 GB RAM)
+   |
+   | uvicorn :7860, FastAPI middleware (CORS, body-size limit)
+   |
+   ├── Azure SQL Serverless (TLS, port 1433, pymssql)
+   |     └── ClassAttendanceDB
+   |
+   └── InsightFace buffalo_l (downloaded to /home/appuser/models/ on first request)
 ```
 
 ### Privilege Levels
@@ -142,24 +191,47 @@ Every request carries `X-User-Id` and `X-Privilege-Level` headers set by the fro
 - `CK_Lecture_Status` — attendance_status must be 'Y' or 'N'
 - `FK_Schedule_User` — Lecture_Schedule.user_id references Login_Master
 
+### Schema files
+
+- `Full Database Query.sql` — uses `USE AttendanceDB`, run in SSMS for **local** SQL Server
+- `azure_migration.sql` — `USE`-free and idempotent, run in Azure Query editor for **cloud**
+- `timetable_setup.sql` — adds `Lecture_Schedule` table + FK
+- `usernamepsswd.sql` — seeds default Superadmin
+
 ---
 
 ## Environment Configuration
 
-### backend/.env
+### Local development
+
+`backend/.env`:
 
 ```env
-SERVER=.\SQLEXPRESS        # SQL Server instance name
-DATABASE=AttendanceDB      # Database name
+# Local SQL Server with Windows Auth (legacy pyodbc-style)
+SERVER=.\SQLEXPRESS
+DATABASE=AttendanceDB
+
+# Or with explicit SQL auth via connection string (pymssql-compatible)
+# DB_CONNECTION_STRING=Driver={ODBC Driver 17 for SQL Server};Server=.\SQLEXPRESS;Database=AttendanceDB;Uid=sa;Pwd=YourPassword;
 ```
 
-### frontend/.env
+`frontend/.env`:
 
 ```env
 # Empty = use Vite dev proxy (recommended for local dev)
-# Set for production: VITE_API_URL=http://your-server:8000
 VITE_API_URL=
 ```
+
+### Production
+
+| Layer | Variable | Set in |
+|---|---|---|
+| Backend | `DB_CONNECTION_STRING` | HF Spaces → Settings → Variables and secrets (as **Secret**) |
+| Backend | `ALLOWED_ORIGINS` | HF Spaces → Settings → Variables and secrets (as Variable) |
+| Backend | `MODEL_ROOT=/home/appuser` | HF Spaces → Settings → Variables and secrets (as Variable) |
+| Frontend | `VITE_API_URL` | Vercel → Settings → Environment Variables |
+
+See [`deployment.md`](deployment.md) for full details.
 
 ---
 
@@ -169,7 +241,6 @@ VITE_API_URL=
 
 #### POST /auth/login
 Authenticate with username and password.
-
 Request: `{ "username": "...", "password": "..." }`
 Response: `{ "user_id": 5, "username": "...", "privilege_level": 3 }`
 Errors: 401 invalid credentials, 500 database error
@@ -192,10 +263,11 @@ Fields: username OR user_id, year, specialisation, lecorlab, panel, lec_name, co
 Response: `{ "lec_id": 12, "message": "Lecture scheduled successfully" }`
 
 #### POST /admin/enroll-student
-Enroll a student with face images. Updates existing student if PRN already exists.
+Enroll a student with face images. Updates existing student if PRN already exists. Appends embeddings on repeat calls — useful for batched uploads.
 Fields: prn, name, year, course, specialisation, rollno, panel, images (base64 array)
 Response: `{ "message": "Student enrolled successfully with 5 embeddings", "prn": "..." }`
 Error 400: no valid faces detected
+Error 413: request body exceeds ~30 MB (HF Spaces edge limit). Upload in smaller batches.
 
 #### GET /admin/students
 Return all enrolled students. Accessible to all logged-in users (privilege 3+).
@@ -333,6 +405,13 @@ Response: `{ "message": "Privilege escalation approved" }`
 
 ---
 
+### Health
+
+#### GET /health
+Returns `{"status":"ok"}` if uvicorn is up. Does **not** verify DB connectivity — first `/auth/login` is the smoke test for that.
+
+---
+
 ## Frontend Pages
 
 | Page | Route | Access | Description |
@@ -381,6 +460,8 @@ Images (base64) -> InsightFace detect_and_embed()
                 -> Store in Student_Embeddings (VARBINARY)
 ```
 
+Multiple enrollment calls for the same PRN **append** embeddings rather than replacing — useful when uploading large image sets in batches.
+
 ### Recognition
 
 ```
@@ -404,6 +485,12 @@ When a teacher identifies an unknown face, the face crop is saved as a new embed
 `similarity = max(0.0, 1.0 - euclidean_distance / threshold)`
 
 Ranges 0.0 to 1.0, displayed as percentage in UI.
+
+### Model storage
+
+InsightFace looks for `<MODEL_ROOT>/models/buffalo_l/` containing the ONNX files:
+- Local: `MODEL_ROOT` defaults to repo root, expects `buffalo_l/` committed there
+- Cloud (HF): `MODEL_ROOT=/home/appuser`, weights auto-download on first request
 
 ---
 
@@ -437,36 +524,81 @@ When `GET /user/lectures/{user_id}` is called:
 
 ---
 
+## Cloud Deployment Notes
+
+These are decisions specific to the live deployment that affect runtime behaviour. See [`deployment.md`](deployment.md) for setup steps.
+
+### Why pymssql instead of pyodbc
+
+pyodbc requires Microsoft's `msodbcsql18` driver installed at the OS level. Render's free Python runtime and HF Spaces both run as non-root and don't have this. Switching to **pymssql** (pure-Python with bundled FreeTDS) eliminated the driver dependency. Code differences:
+
+| Concern | pyodbc | pymssql |
+|---|---|---|
+| Placeholder syntax | `?` | `%s` |
+| Row attribute access (`row.user_id`) | ✓ built-in | added via `_RowConnection`/`_RowCursor` wrapper in `database.py` |
+| Exception classes | `pyodbc.IntegrityError`, `pyodbc.Error` | `pymssql.IntegrityError`, `pymssql.Error` |
+| Connection string | ODBC-style | Native kwargs (server, user, password, database). `database.py` parses ODBC strings into kwargs. |
+
+### Why Hugging Face Spaces instead of Render
+
+InsightFace `buffalo_l` peaks ~600 MB RAM during model load. Render free (512 MB) OOM-kills the worker mid-request, which surfaces in the browser as `ERR_CONNECTION_CLOSED` or stealth-CORS errors. HF Spaces free CPU tier provides 16 GB RAM — comfortable headroom. The `Dockerfile` and `Procfile` both remain in `backend/` so a paid Render Standard plan would also work.
+
+### Azure SQL Serverless behaviour
+
+The DB auto-pauses after 1 hour idle. The first connection after a pause triggers Azure error `40613` for ~30–60 s while the DB resumes. `database.py` retries this transient error 4× with backoff. To bypass entirely, set Auto-pause delay to "Never" — at the cost of 24/7 vCore-second billing.
+
+### CORS and credentials
+
+`main.py` uses `allow_credentials=True` plus a strict origin list (`ALLOWED_ORIGINS`). The wildcard `*` is forbidden by browsers when credentials are allowed, so every frontend origin must be explicitly listed.
+
+### Body size limit
+
+`main.py` middleware caps requests at 50 MB, but HF Spaces' edge proxy enforces a tighter limit (~30 MB) before the request reaches the app. Large enrollment uploads (40+ images) hit this — split into batches of ~10 images per call. The backend's `/admin/enroll-student` endpoint appends embeddings on repeat calls for the same PRN.
+
+---
+
 ## Recent Changes and Fixes
 
-### Bug Fixes
+### Cloud deployment (deploy-clean branch)
+
+- Slim repo: dropped `evaluation/`, tests, runtime caches (~470 MB removed from working tree)
+- Slim `requirements.txt`: 115 → 16 packages (no torch, ultralytics, Windows-only deps)
+- Fixed `runtime.txt` encoding (UTF-16 BOM → ASCII)
+- Swapped `pyodbc` → `pymssql` for cross-platform Linux deploy
+- Added `_RowConnection`/`_RowCursor` wrapper for pyodbc-style attribute access on pymssql tuples
+- Added `_connect_with_retry` for Azure SQL Serverless wake-up errors (40613, 40197, etc.)
+- Added `Dockerfile` for HF Spaces (gcc/g++/python3-dev for InsightFace Cython build)
+- Added HF Space metadata frontmatter to `backend/README.md`
+- Connection string parser handles ODBC-style `Pwd={...}` brace escaping
+
+### Bug Fixes (functional)
 
 **Duplicate attendance record error**
-- Fixed: resolve-faces now checks if (lec_id, prn) already exists before INSERT
+- resolve-faces now checks if (lec_id, prn) already exists before INSERT
 - Both "existing" and "new" actions are idempotent
 
 **Face ID not found in cache**
-- Fixed: FaceResolution model now accepts optional `image` field (base64 fallback)
+- FaceResolution model accepts optional `image` field (base64 fallback)
 - If server cache was cleared (restart), uses frontend-provided image
 - Embedding still saved, attendance still marked
 
 **Process attendance on finalized lecture**
-- Fixed: Backend rejects mark-attendance if attendance_status='Y' (HTTP 400)
+- Backend rejects mark-attendance if attendance_status='Y' (HTTP 400)
 - Frontend: button disabled + shows "Lecture Already Finalized" for completed lectures
 - Frontend: auto-select skips completed lectures
 
 **Process attendance without selecting lecture**
-- Fixed: Button disabled when no lecture selected, shows "Select a Lecture First"
+- Button disabled when no lecture selected, shows "Select a Lecture First"
 - handleSubmit validates selectedLecId before proceeding
 
 **EnrollStudentRequest missing prn field**
-- Fixed: prn field was accidentally removed from the Pydantic model
+- prn field was accidentally removed from the Pydantic model
 
 **Lecture_Schedule table missing**
-- Fixed: timetable_setup.sql creates the table idempotently
+- timetable_setup.sql creates the table idempotently
 
 **Auto-generated lectures failing (NOT NULL constraint)**
-- Fixed: user.py now fetches teacher's school/department from User_Master before INSERT
+- user.py now fetches teacher's school/department from User_Master before INSERT
 
 ### New Features
 
@@ -485,9 +617,6 @@ When `GET /user/lectures/{user_id}` is called:
 - Selecting existing student saves face crop as new embedding (auto-recognition next time)
 - "Register New Student" tab: manual form for brand-new students
 
-**Classroom Attendance System branding**
-- Navbar heading updated from "Attendance System"
-
 **Forgot Password**
 - Shows informational alert with SSMS reset instructions instead of freezing
 
@@ -495,7 +624,7 @@ When `GET /user/lectures/{user_id}` is called:
 
 ## Running the Application
 
-### Backend
+### Backend (local)
 
 ```bash
 cd backend
@@ -505,7 +634,7 @@ uvicorn main:app --host 0.0.0.0 --port 8000 --reload
 API: http://localhost:8000
 Swagger docs: http://localhost:8000/docs
 
-### Frontend
+### Frontend (local)
 
 ```bash
 cd frontend
@@ -514,13 +643,17 @@ npm run dev
 
 App: http://localhost:5173
 
-The Vite proxy forwards /auth, /admin, /user, /superadmin to :8000.
+The Vite proxy forwards /auth, /admin, /user, /superadmin, /health to :8000.
 
 ### If npm install fails
 
 ```bash
 npm install --legacy-peer-deps
 ```
+
+### Cloud (already deployed)
+
+Just open https://capstone-class-attendance-system-us.vercel.app and log in.
 
 ---
 
@@ -531,29 +664,24 @@ cd backend
 pytest -v
 ```
 
-All tests mock database and InsightFace. No live DB or GPU required.
+All tests mock the database and InsightFace. No live DB or GPU required.
+
+> Tests live on the `main` branch (or a dev branch with the original test suite). The `deploy-clean` branch strips them to keep the cloud image small.
 
 ---
 
 ## Troubleshooting
 
-**Backend 500 on /user/lectures**
-- Run timetable_setup.sql in SSMS to create Lecture_Schedule table
-
-**Invalid credentials on login**
-- Run the password reset SQL in SSMS (see CREDENTIALS.md)
-
-**Face not detected during enrollment**
-- Use well-lit, forward-facing images
-- More images = better centroid = better recognition
-
-**Process Attendance button greyed out**
-- Select a lecture from the dropdown first
-- If it shows "Lecture Already Finalized", choose a different lecture
-
-**Browser showing old version after code change**
-- Hard refresh: Ctrl+Shift+R
-- Or restart the Vite dev server
-
-**InsightFace model download on first run**
-- Requires internet access (~500MB download to ~/.insightface/models/buffalo_l/)
+| Symptom | Likely cause | Fix |
+|---|---|---|
+| **Backend 500 on /user/lectures** | `Lecture_Schedule` table missing | Run `timetable_setup.sql` |
+| **Invalid credentials on login** | Login_Master empty or wrong hash | Run `usernamepsswd.sql` (or the cloud-friendly INSERT in CREDENTIALS.md) |
+| **Face not detected during enrollment** | Poor image quality | Use well-lit, forward-facing images. Multiple images = better centroid. |
+| **Process Attendance button greyed out** | No lecture selected | Pick a lecture from the dropdown. Finalized ones are skipped. |
+| **Browser shows old version after code change** | Vite cache | Ctrl+Shift+R or restart the dev server |
+| **InsightFace model download on first run** | Expected | ~280 MB download to `~/.insightface/models/buffalo_l/` (local) or `/home/appuser/models/buffalo_l/` (HF Spaces) |
+| **First request after long idle very slow** | Azure SQL paused + InsightFace cold load | 30–90 s combined. Subsequent requests are fast. |
+| **413 Request Entity Too Large on enroll** | Image batch exceeds HF edge limit | Upload in batches of ~10. Backend appends embeddings per call. |
+| **`ERR_HTTP2_PROTOCOL_ERROR` or stealth CORS error** | Backend OOM-killed mid-request (more likely on Render free tier) | Check host metrics; HF Spaces free has 16 GB and shouldn't hit this |
+| **`'tuple' has no attribute 'user_id'`** | pymssql tuples vs pyodbc Rows | Already fixed via `_RowConnection` wrapper — verify code is up to date |
+| **Permission denied: '/models'** | `MODEL_ROOT` not set on HF Spaces | Set `MODEL_ROOT=/home/appuser` in HF Variables |

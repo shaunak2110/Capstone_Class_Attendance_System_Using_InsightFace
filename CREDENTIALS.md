@@ -5,6 +5,39 @@
 
 ---
 
+## Live Deployment
+
+| Layer | URL / Host | Notes |
+|---|---|---|
+| Frontend | https://capstone-class-attendance-system-us.vercel.app | Vercel — built from `deploy-clean` branch |
+| Backend | https://Shaunak2110-attendance-backend.hf.space | Hugging Face Spaces (Docker) |
+| Backend health check | https://Shaunak2110-attendance-backend.hf.space/health | Should return `{"status":"ok"}` |
+| Database | `attendance-server-shaunak.database.windows.net` / `ClassAttendanceDB` | Azure SQL Serverless |
+
+### Azure SQL — admin login
+
+| Field | Value |
+|---|---|
+| Server | `attendance-server-shaunak.database.windows.net` |
+| Database | `ClassAttendanceDB` |
+| Authentication | SQL Server Authentication |
+| Username | `attendanceadmin` |
+| Password | `Capstone@2026` |
+
+Use these in **Azure portal → ClassAttendanceDB → Query editor (preview)** for ad-hoc SQL, or in SSMS / Azure Data Studio with the same hostname + SQL auth.
+
+### Connection string used by the backend
+
+```
+Driver={ODBC Driver 18 for SQL Server};Server=tcp:attendance-server-shaunak.database.windows.net,1433;Database=ClassAttendanceDB;Uid=attendanceadmin;Pwd={Capstone@2026};Encrypt=yes;TrustServerCertificate=no;Connection Timeout=30;
+```
+
+Stored as the `DB_CONNECTION_STRING` secret on the HF Space. The backend's `database.py` parses ODBC-style strings into pymssql kwargs (strips `tcp:`, `{...}` braces, ignores driver/encrypt directives).
+
+> **Rotate this password** after the capstone demo. Same goes for the HF access token — both are in this file (and chat history) and should not be considered secret long-term.
+
+---
+
 ## Default Accounts
 
 These accounts are seeded by running `usernamepsswd.sql` against `AttendanceDB`.
@@ -113,13 +146,33 @@ Body:
 
 ## Database Seed Instructions
 
+### Local (SQL Server Express / SSMS)
+
 Run these SQL files **in order** against `AttendanceDB` in SQL Server Management Studio:
 
 ```
-1. Full Database Query.sql   — Creates all tables, indexes, constraints
-2. timetable_setup.sql       — Adds Lecture_Schedule table + schedule_id FK
-3. usernamepsswd.sql         — Seeds the default Superadmin account
+1. Full Database Query.sql   — Creates all tables, indexes, constraints (uses USE AttendanceDB)
+2. timetable_setup.sql        — Adds Lecture_Schedule table + schedule_id FK
+3. usernamepsswd.sql          — Seeds the default Superadmin account
 ```
+
+### Cloud (Azure SQL / Query editor)
+
+Azure SQL forbids `USE <db>` between databases — connections target the DB selected in the connection string. Use these instead:
+
+1. **Schema:** Open `azure_migration.sql` (root of repo). It's the same schema as `Full Database Query.sql` but `USE`-free and idempotent.
+   - Azure portal → ClassAttendanceDB → **Query editor (preview)** → log in (`attendanceadmin` / `Capstone@2026`) → paste contents → Run
+
+2. **Superadmin seed:** Strip the `USE AttendanceDB; GO` lines from `usernamepsswd.sql` and run only the INSERT block:
+
+   ```sql
+   INSERT INTO Login_Master (username, password_hash, privilege_level)
+   VALUES ('superadmin@mitwpu.edu.in', '$2b$12$rb35pVJMsmeypCGI3PzJUO6CJAYmLXYsSUB1VQsQ6AtjEMlix4Bl2', 1);
+
+   INSERT INTO User_Master (user_id, name, email_id, school, department)
+   SELECT user_id, 'Super Admin', 'superadmin@mitwpu.edu.in', 'Administration', 'IT'
+   FROM Login_Master WHERE username = 'superadmin@mitwpu.edu.in';
+   ```
 
 After seeding, log in with the Superadmin credentials above and create Admin and Teacher accounts through the UI.
 
@@ -200,6 +253,8 @@ This means:
 ---
 
 ## Complete Fresh Start Guide
+
+> **Just want to use the deployed system?** Skip this — open https://capstone-class-attendance-system-us.vercel.app and log in with the superadmin credentials above. This guide is only for **setting up local development** on a new machine.
 
 Follow these steps exactly if you are setting up this project on a new machine for the first time.
 
