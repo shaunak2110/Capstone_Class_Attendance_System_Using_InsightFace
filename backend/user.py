@@ -7,14 +7,13 @@ attendance marking, face resolution, and attendance finalization.
 Requirements: 8.1, 8.2, 8.3, 9.1, 9.7, 15.2
 """
 
-from fastapi import APIRouter, HTTPException, status, Header, Depends
+from fastapi import APIRouter, HTTPException, status, Depends
 from pydantic import BaseModel
 from typing import Optional, List
 import datetime as dt
 import pyodbc
-from database import execute_query
+from database import execute_query, get_db_connection
 from services import recognition_service, training_service, csv_service
-from model.face_model import FaceModel
 from model.inference import InferenceEngine
 from dependencies import require_privilege, get_current_user_id
 
@@ -114,6 +113,8 @@ class FaceResolution(BaseModel):
         prn: Student's PRN (required for "existing" and "new" actions)
         name: Student's name (required for "new" action only)
         panel: Student's panel (required for "new" action only)
+        image: Optional base64 face crop sent by frontend as fallback
+               when the server-side cache has been cleared (e.g. after restart)
     """
     face_id: str
     action: str  # "existing", "new", or "discard"
@@ -124,6 +125,7 @@ class FaceResolution(BaseModel):
     course: Optional[str] = None
     specialisation: Optional[str] = None
     rollno: Optional[str] = None
+    image: Optional[str] = None  # base64 fallback from frontend
 
 
 class ResolveFacesRequest(BaseModel):
@@ -165,7 +167,7 @@ class FinalizeAttendanceRequest(BaseModel):
 class FinalizeAttendanceResponse(BaseModel):
     """
     Response model for attendance finalization.
-    
+
     Attributes:
         message: Success message
         csv_path: Path to the generated CSV file
@@ -173,60 +175,9 @@ class FinalizeAttendanceResponse(BaseModel):
     message: str
     csv_path: str
 
-    class FinalizeAttendanceRequest(BaseModel):
-        """
-        Request model for finalizing attendance.
-
-        Attributes:
-            lec_id: ID of the lecture to finalize
-        """
-        lec_id: int
-
-
-    class FinalizeAttendanceResponse(BaseModel):
-        """
-        Response model for attendance finalization.
-
-        Attributes:
-            message: Success message
-            csv_path: Path to the generated CSV file
-        """
-        message: str
-        csv_path: str
-
 
 # Create router for user/teacher endpoints
 router = APIRouter(prefix="/user", tags=["User/Teacher"])
-
-
-# Global face model and inference engine instances
-# These will be set by main.py at startup via set_face_model / set_inference_engine
-_face_model = None
-_inference_engine = None
-
-
-def set_face_model(face_model):
-    global _face_model
-    _face_model = face_model
-
-
-def set_inference_engine(inference_engine):
-    global _inference_engine
-    _inference_engine = inference_engine
-
-
-def get_face_model():
-    global _face_model
-    if _face_model is None:
-        _face_model = FaceModel()
-    return _face_model
-
-
-def get_inference_engine():
-    global _inference_engine
-    if _inference_engine is None:
-        _inference_engine = InferenceEngine(get_face_model())
-    return _inference_engine
 
 
 # Note: validate_user_privilege is now replaced by require_privilege(3) dependency
@@ -240,81 +191,215 @@ async def get_user_lectures(
 ):
     """
     Retrieve all scheduled lectures for a specific teacher.
-    
-    This endpoint returns all lectures associated with the given user_id,
-    ordered by lecture_datetime in descending order (most recent first).
-    All authenticated users (privilege levels 1, 2, 3) can access this endpoint.
-    
-    Args:
-        user_id: ID of the teacher whose lectures to retrieve
-        _: Privilege validation dependency (requires User level 3 or higher)
-        
-    Returns:
-        List[LectureResponse]: List of lectures with details
-        
-    Raises:
-        HTTPException 403: If user lacks valid privileges
-        HTTPException 404: If no lectures found for the user
-        HTTPException 500: If database operation fails
-        
-    Requirements:
-        - 8.1: Retrieve all Lecture_Master records matching user_id
-        - 8.2: Return lecture details including lec_id, lec_name, panel, 
-               lecture_datetime, and attendance_status
-        - 8.3: Order results by lecture_datetime DESC
+
+    Timetable integration: before returning, checks Lecture_Schedule for any
+    recurring templates belonging to this teacher that match today's day-of-week
+    and fall within the semester date range. For each match a Lecture_Master row
+    is auto-created for today (idempotent — duplicates are skipped). This means
+    a teacher always sees today's classes without the admin pre-creating them
+    every morning.
+
+    Results are ordered: today's lectures first (by time ASC), then all others
+    by lecture_datetime DESC.
+
+    Requirements: 8.1, 8.2, 8.3
     """
-    # Privilege validation is handled by require_privilege(3) dependency
-    
+    connection = None
+    cursor = None
     try:
-        # Query Lecture_Master for all lectures belonging to the user
-        query = """
-            SELECT lec_id, lec_name, panel, lecture_datetime, attendance_status, year, specialisation, course_code, lecorlab
+        connection = get_db_connection()
+        cursor = connection.cursor()
+
+        # ── Step 1: Auto-generate today's lecture instances from Lecture_Schedule ──
+        today = dt.date.today()
+        today_name = today.strftime('%A')   # e.g. 'Wednesday'
+
+        cursor.execute("""
+            SELECT schedule_id, lec_name, course_code, lecorlab,
+                   year, specialisation, panel, start_time
+            FROM Lecture_Schedule
+            WHERE user_id = ?
+              AND day_of_week = ?
+              AND is_active = 1
+              AND sem_start_date <= ?
+              AND sem_end_date   >= ?
+        """, (user_id, today_name, str(today), str(today)))
+        today_schedules = cursor.fetchall()
+
+        # Get teacher's school/department for Lecture_Master NOT NULL columns
+        cursor.execute(
+            "SELECT school, department FROM User_Master WHERE user_id = ?",
+            (user_id,)
+        )
+        teacher_row = cursor.fetchone()
+        teacher_school = teacher_row[0] if teacher_row else ''
+        teacher_dept = teacher_row[1] if teacher_row else ''
+
+        for sched in today_schedules:
+            (schedule_id, lec_name, course_code, lecorlab,
+             year, specialisation, panel, start_time_val) = sched
+
+            # Build today's exact datetime for this lecture
+            if hasattr(start_time_val, 'hour'):
+                lec_dt = dt.datetime.combine(today, start_time_val)
+            else:
+                h, m = str(start_time_val).split(':')[:2]
+                lec_dt = dt.datetime.combine(today, dt.time(int(h), int(m)))
+
+            # Idempotency: only insert if this (schedule_id, date) doesn't exist yet
+            cursor.execute("""
+                SELECT lec_id FROM Lecture_Master
+                WHERE schedule_id = ?
+                  AND CAST(lecture_datetime AS DATE) = ?
+            """, (schedule_id, str(today)))
+            if cursor.fetchone():
+                continue  # already created today
+
+            cursor.execute("""
+                INSERT INTO Lecture_Master
+                  (user_id, school, department, lecorlab, panel, lec_name, course_code,
+                   lecture_datetime, attendance_status,
+                   year, specialisation, schedule_id)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'N', ?, ?, ?)
+            """, (
+                user_id, teacher_school, teacher_dept,
+                lecorlab, panel, lec_name, course_code,
+                lec_dt, year, specialisation, schedule_id
+            ))
+
+        connection.commit()
+
+        # ── Step 2: Fetch all lectures for this teacher ──────────────────────
+        cursor.execute("""
+            SELECT lec_id, lec_name, panel, lecture_datetime, attendance_status,
+                   year, specialisation, course_code, lecorlab
             FROM Lecture_Master
             WHERE user_id = ?
-            ORDER BY lecture_datetime DESC
-        """
-        
-        results = execute_query(query, (user_id,), fetch=True)
-        
-        # Check if any lectures were found
-        if not results or len(results) == 0:
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail=f"No lectures found for user_id {user_id}"
+            ORDER BY
+                CASE WHEN CAST(lecture_datetime AS DATE) = CAST(GETDATE() AS DATE)
+                     THEN 0 ELSE 1 END,
+                lecture_datetime DESC
+        """, (user_id,))
+        rows = cursor.fetchall()
+
+        if not rows:
+            return []
+
+        return [
+            LectureResponse(
+                lec_id=r[0], lec_name=r[1], panel=r[2],
+                lecture_datetime=r[3], attendance_status=r[4],
+                year=r[5], specialisation=r[6],
+                course_code=r[7], lecorlab=r[8]
             )
-        
-        # Convert database rows to LectureResponse models
-        lectures = []
-        for row in results:
-            lectures.append(LectureResponse(
-                lec_id=row.lec_id,
-                lec_name=row.lec_name,
-                panel=row.panel,
-                lecture_datetime=row.lecture_datetime,
-                attendance_status=row.attendance_status,
-                year=getattr(row, 'year', None),
-                specialisation=getattr(row, 'specialisation', None),
-                course_code=getattr(row, 'course_code', None),
-                lecorlab=getattr(row, 'lecorlab', None)
-            ))
-        
-        return lectures
-        
+            for r in rows
+        ]
+
     except HTTPException:
-        # Re-raise HTTP exceptions (404, 403, etc.)
         raise
     except pyodbc.Error as e:
-        # Handle database errors
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Database error while retrieving lectures: {str(e)}"
         )
     except Exception as e:
-        # Handle unexpected errors
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Unexpected error while retrieving lectures: {str(e)}"
         )
+    finally:
+        if cursor:
+            cursor.close()
+        if connection:
+            connection.close()
+
+
+@router.get("/today-lectures/{user_id}", response_model=List[LectureResponse])
+async def get_today_lectures(
+    user_id: int,
+    _: int = Depends(require_privilege(3))
+):
+    """
+    Return only today's lectures for a teacher, ordered by start time ASC.
+    Used by the teacher Dashboard 'Today's Classes' smart panel.
+    Triggers the same auto-generation logic as get_user_lectures.
+    """
+    # Reuse the full lectures endpoint which auto-generates today's instances,
+    # then filter to today only.
+    try:
+        today = dt.date.today()
+        query = """
+            SELECT lec_id, lec_name, panel, lecture_datetime, attendance_status,
+                   year, specialisation, course_code, lecorlab
+            FROM Lecture_Master
+            WHERE user_id = ?
+              AND CAST(lecture_datetime AS DATE) = ?
+            ORDER BY lecture_datetime ASC
+        """
+        results = execute_query(query, (user_id, str(today)), fetch=True)
+
+        if not results:
+            return []
+
+        return [
+            LectureResponse(
+                lec_id=r[0], lec_name=r[1], panel=r[2],
+                lecture_datetime=r[3], attendance_status=r[4],
+                year=r[5], specialisation=r[6],
+                course_code=r[7], lecorlab=r[8]
+            )
+            for r in results
+        ]
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.get("/schedules/{user_id}")
+async def get_user_schedules(
+    user_id: int,
+    _: int = Depends(require_privilege(3))
+):
+    """
+    Retrieve all active recurring lecture templates (Lecture_Schedule rows)
+    for a specific teacher. Used by the teacher's profile/timetable view.
+    """
+    try:
+        query = """
+            SELECT schedule_id, user_id, lec_name, course_code, lecorlab,
+                   year, specialisation, panel, day_of_week, start_time,
+                   sem_start_date, sem_end_date, is_active
+            FROM Lecture_Schedule
+            WHERE user_id = ? AND is_active = 1
+            ORDER BY day_of_week, start_time
+        """
+        results = execute_query(query, (user_id,), fetch=True)
+        if not results:
+            return []
+
+        schedules = []
+        for r in results:
+            schedules.append({
+                "schedule_id": r.schedule_id,
+                "user_id": r.user_id,
+                "lec_name": r.lec_name,
+                "course_code": r.course_code,
+                "lecorlab": r.lecorlab,
+                "year": r.year,
+                "specialisation": r.specialisation,
+                "panel": r.panel,
+                "day_of_week": r.day_of_week,
+                "start_time": (
+                    r.start_time.strftime('%H:%M')
+                    if hasattr(r.start_time, 'strftime')
+                    else str(r.start_time)[:5]
+                ),
+                "sem_start_date": str(r.sem_start_date),
+                "sem_end_date": str(r.sem_end_date),
+                "is_active": bool(r.is_active),
+            })
+        return schedules
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
 
 
 @router.get("/enrolled-students/{lec_id}", response_model=List[EnrolledStudentResponse])
@@ -455,9 +540,9 @@ async def mark_attendance(
         )
     
     try:
-        # Step 1: Validate lecture exists and belongs to authenticated user
+        # Step 1: Validate lecture exists, belongs to user, and is not finalized
         query = """
-            SELECT lec_id, user_id, panel
+            SELECT lec_id, user_id, panel, attendance_status
             FROM Lecture_Master
             WHERE lec_id = ?
         """
@@ -479,6 +564,13 @@ async def mark_attendance(
                 status_code=status.HTTP_403_FORBIDDEN,
                 detail=f"Lecture {request.lec_id} does not belong to user {user_id}"
             )
+
+        # Block processing if lecture is already finalized
+        if lecture.attendance_status == 'Y':
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="This lecture has already been finalized. Attendance cannot be marked again."
+            )
         
         # Optional: Update lecture datetime if overridden by teacher
         if request.lecture_datetime:
@@ -486,7 +578,7 @@ async def mark_attendance(
             execute_query(update_dt_query, (request.lecture_datetime, request.lec_id), fetch=False)
         
         # Step 2: Get inference engine instance
-        inference_engine = get_inference_engine()
+        inference_engine = InferenceEngine()
         
         # Step 3: Call recognition_service.recognize_students()
         identified_students_list, unidentified_faces_list = recognition_service.recognize_students(
@@ -618,9 +710,6 @@ async def resolve_faces(
                 detail=f"Lecture {request.lec_id} does not belong to user {user_id}"
             )
         
-        # Get face model instance for training
-        face_model = get_face_model()
-        
         # Step 2: Process each resolution
         resolved_count = 0
         
@@ -651,14 +740,19 @@ async def resolve_faces(
             
             prn = resolution.prn
             
-            # Retrieve face image from cache
+            # Retrieve face image from cache.
+            # If the cache was cleared (e.g. server restart), fall back to the
+            # base64 image the frontend sent in the resolution payload.
             try:
                 face_image = recognition_service.get_unidentified_face(face_id)
             except KeyError:
-                raise HTTPException(
-                    status_code=status.HTTP_400_BAD_REQUEST,
-                    detail=f"Face ID {face_id} not found in cache. It may have already been processed."
-                )
+                if resolution.image:
+                    # Use the frontend-provided base64 crop as fallback
+                    face_image = resolution.image
+                else:
+                    # No cache and no fallback image — skip embedding but still
+                    # process attendance so the teacher's action is not lost
+                    face_image = None
             
             # Handle "existing" action
             if action == "existing":
@@ -675,17 +769,22 @@ async def resolve_faces(
                 student = results[0]
                 student_panel = student.panel
                 
-                # Insert into Attendance_Record
-                insert_query = """
-                    INSERT INTO Attendance_Record (lec_id, prn, status)
-                    VALUES (?, ?, 'Present')
-                """
-                execute_query(insert_query, (request.lec_id, prn), fetch=False)
+                # Insert into Attendance_Record (skip if already marked)
+                existing_record = execute_query(
+                    "SELECT 1 FROM Attendance_Record WHERE lec_id = ? AND prn = ?",
+                    (request.lec_id, prn), fetch=True
+                )
+                if not existing_record:
+                    execute_query(
+                        "INSERT INTO Attendance_Record (lec_id, prn, status) VALUES (?, ?, 'Present')",
+                        (request.lec_id, prn), fetch=False
+                    )
                 
-                # Perform incremental training
-                training_service.incremental_train(face_model, prn, [face_image])
+                # Perform incremental enrollment (only if we have the face image)
+                if face_image:
+                    training_service.incremental_enroll(prn, face_image)
                 
-                # Remove face from cache
+                # Remove face from cache (safe even if already gone)
                 recognition_service.remove_unidentified_face(face_id)
                 resolved_count += 1
             
@@ -732,17 +831,22 @@ async def resolve_faces(
                     panel
                 ), fetch=False)
                 
-                # Insert into Attendance_Record
-                insert_attendance_query = """
-                    INSERT INTO Attendance_Record (lec_id, prn, status)
-                    VALUES (?, ?, 'Present')
-                """
-                execute_query(insert_attendance_query, (request.lec_id, prn), fetch=False)
+                # Insert into Attendance_Record (skip if already marked)
+                existing_record = execute_query(
+                    "SELECT 1 FROM Attendance_Record WHERE lec_id = ? AND prn = ?",
+                    (request.lec_id, prn), fetch=True
+                )
+                if not existing_record:
+                    execute_query(
+                        "INSERT INTO Attendance_Record (lec_id, prn, status) VALUES (?, ?, 'Present')",
+                        (request.lec_id, prn), fetch=False
+                    )
                 
-                # Perform incremental training
-                training_service.incremental_train(face_model, prn, [face_image])
+                # Perform incremental enrollment (only if we have the face image)
+                if face_image:
+                    training_service.incremental_enroll(prn, face_image)
                 
-                # Remove face from cache
+                # Remove face from cache (safe even if already gone)
                 recognition_service.remove_unidentified_face(face_id)
                 resolved_count += 1
         
@@ -894,3 +998,108 @@ async def finalize_attendance(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Unexpected error while finalizing attendance: {str(e)}"
         )
+
+
+@router.get("/profile")
+async def get_user_profile(
+    user_id: int = Depends(get_current_user_id),
+    _: int = Depends(require_privilege(3))
+):
+    """
+    Return profile details for the currently authenticated user.
+    Reads X-User-Id header (injected by the frontend interceptor).
+    """
+    try:
+        query = """
+            SELECT l.user_id, l.username, l.privilege_level,
+                   u.name, u.email_id, u.school, u.department
+            FROM Login_Master l
+            JOIN User_Master u ON l.user_id = u.user_id
+            WHERE l.user_id = ?
+        """
+        results = execute_query(query, (user_id,), fetch=True)
+        if not results:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
+        row = results[0]
+        return {
+            "user_id": row.user_id,
+            "username": row.username,
+            "privilege_level": row.privilege_level,
+            "name": row.name,
+            "email_id": row.email_id,
+            "school": row.school,
+            "department": row.department,
+        }
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e))
+
+
+@router.get("/download-csv/{lec_id}")
+async def download_csv(
+    lec_id: int,
+    user_id: int = Depends(get_current_user_id),
+    _: int = Depends(require_privilege(3))
+):
+    """
+    Stream the CSV file for a finalized lecture as a file download.
+    Regenerates the CSV on demand so it is always up-to-date.
+    """
+    import os
+    from fastapi.responses import FileResponse
+
+    try:
+        # Verify lecture belongs to this user
+        results = execute_query(
+            "SELECT user_id FROM Lecture_Master WHERE lec_id = ?",
+            (lec_id,), fetch=True
+        )
+        if not results:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Lecture not found")
+        if results[0].user_id != user_id:
+            raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Access denied")
+
+        csv_path = csv_service.generate_attendance_csv(lec_id)
+
+        if not os.path.exists(csv_path):
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="CSV file not found")
+
+        filename = os.path.basename(csv_path)
+        return FileResponse(
+            path=csv_path,
+            media_type="text/csv",
+            filename=filename,
+        )
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e))
+
+
+@router.post("/request-privilege")
+async def request_privilege(
+    user_id: int = Depends(get_current_user_id),
+    _: int = Depends(require_privilege(3))
+):
+    """
+    Submit a privilege escalation request for the current user.
+    Inserts a row into Request_Master (ignored if one already exists).
+    """
+    try:
+        existing = execute_query(
+            "SELECT request_id FROM Request_Master WHERE user_id = ?",
+            (user_id,), fetch=True
+        )
+        if existing:
+            return {"message": "Privilege request already submitted"}
+
+        execute_query(
+            "INSERT INTO Request_Master (user_id) VALUES (?)",
+            (user_id,), fetch=False
+        )
+        return {"message": "Privilege request submitted successfully"}
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e))

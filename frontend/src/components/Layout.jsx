@@ -40,7 +40,7 @@ export default function Layout() {
                   <Shield className="h-5 w-5" />
                 </div>
                 <h1 className="text-2xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-indigo-400 via-purple-400 to-teal-400 tracking-tight">
-                  Attendance System
+                  Classroom Attendance System
                 </h1>
               </div>
             </div>

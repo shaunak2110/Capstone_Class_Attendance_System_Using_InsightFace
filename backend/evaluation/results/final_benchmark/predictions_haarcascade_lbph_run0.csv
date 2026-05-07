@@ -1,0 +1,103 @@
+image_id,true_label,predicted_label,similarity,detected,is_unknown,detection_ms,recognition_ms,total_ms,det_confidence,bbox
+C:\CapstoneVer3\backend\evaluation\dataset\raw\person_1_sudhanshu\WhatsApp Image 2026-02-22 at 11.01.05 AM (1).jpeg,person_1_sudhanshu,person_1_sudhanshu,0.0,True,False,1351.279,12.256,1363.535,0.717,"[205, 318, 460, 573]"
+C:\CapstoneVer3\backend\evaluation\dataset\raw\person_1_sudhanshu\WhatsApp Image 2026-04-12 at 11.26.04 AM (2).jpeg,person_1_sudhanshu,,0.0,False,False,30.46,0.0,30.46,,
+C:\CapstoneVer3\backend\evaluation\dataset\raw\person_1_sudhanshu\WhatsApp Image 2026-02-22 at 11.01.06 AM (2).jpeg,person_1_sudhanshu,person_2_shaunak,0.0,True,False,57.217,11.707,68.924,0.56,"[83, 144, 447, 508]"
+C:\CapstoneVer3\backend\evaluation\dataset\raw\person_1_sudhanshu\WhatsApp Image 2026-02-22 at 11.01.03 AM.jpeg,person_1_sudhanshu,person_1_sudhanshu,0.0,True,False,23.193,10.726,33.919,0.7177,"[163, 245, 477, 559]"
+C:\CapstoneVer3\backend\evaluation\dataset\raw\person_1_sudhanshu\WhatsApp Image 2026-04-12 at 11.26.09 AM (2).jpeg,person_1_sudhanshu,person_1_sudhanshu,0.0,True,False,56.809,11.917,68.726,0.6557,"[320, 244, 406, 330]"
+C:\CapstoneVer3\backend\evaluation\dataset\raw\person_1_sudhanshu\WhatsApp Image 2026-04-12 at 11.26.03 AM (2).jpeg,person_1_sudhanshu,,0.0,False,False,44.902,0.0,44.902,,
+C:\CapstoneVer3\backend\evaluation\dataset\raw\person_1_sudhanshu\WhatsApp Image 2026-02-22 at 11.01.07 AM (1).jpeg,person_1_sudhanshu,,0.0,False,False,31.706,0.0,31.706,,
+C:\CapstoneVer3\backend\evaluation\dataset\raw\person_1_sudhanshu\WhatsApp Image 2026-04-12 at 11.26.09 AM.jpeg,person_1_sudhanshu,person_1_sudhanshu,0.0,True,False,96.771,10.763,107.534,0.5599,"[354, 227, 432, 305]"
+C:\CapstoneVer3\backend\evaluation\dataset\raw\person_1_sudhanshu\WhatsApp Image 2026-04-12 at 11.22.55 AM (2).jpeg,person_1_sudhanshu,,0.0,False,False,40.11,0.0,40.11,,
+C:\CapstoneVer3\backend\evaluation\dataset\raw\person_1_sudhanshu\WhatsApp Image 2026-04-12 at 11.22.59 AM (3).jpeg,person_1_sudhanshu,,0.0,False,False,35.363,0.0,35.363,,
+C:\CapstoneVer3\backend\evaluation\dataset\raw\person_1_sudhanshu\WhatsApp Image 2026-02-22 at 11.01.05 AM (2).jpeg,person_1_sudhanshu,person_1_sudhanshu,0.0,True,False,28.034,10.746,38.78,0.6838,"[261, 295, 487, 521]"
+C:\CapstoneVer3\backend\evaluation\dataset\raw\person_1_sudhanshu\WhatsApp Image 2026-04-12 at 11.22.58 AM (3).jpeg,person_1_sudhanshu,,0.0,False,False,30.786,0.0,30.786,,
+C:\CapstoneVer3\backend\evaluation\dataset\raw\person_1_sudhanshu\WhatsApp Image 2026-04-12 at 11.23.01 AM.jpeg,person_1_sudhanshu,person_1_sudhanshu,0.0,True,False,90.906,13.546,104.452,0.5329,"[317, 219, 400, 302]"
+C:\CapstoneVer3\backend\evaluation\dataset\raw\person_1_sudhanshu\WhatsApp Image 2026-04-12 at 11.26.05 AM (2).jpeg,person_1_sudhanshu,,0.0,False,False,41.406,0.0,41.406,,
+C:\CapstoneVer3\backend\evaluation\dataset\raw\person_1_sudhanshu\WhatsApp Image 2026-02-22 at 11.01.08 AM (1).jpeg,person_1_sudhanshu,person_1_sudhanshu,0.0,True,False,24.452,10.553,35.005,0.6682,"[110, 161, 503, 554]"
+C:\CapstoneVer3\backend\evaluation\dataset\raw\person_1_sudhanshu\WhatsApp Image 2026-04-12 at 11.22.55 AM.jpeg,person_1_sudhanshu,person_1_sudhanshu,0.0,True,False,112.442,11.414,123.856,0.7137,"[313, 198, 384, 269]"
+C:\CapstoneVer3\backend\evaluation\dataset\raw\person_1_sudhanshu\WhatsApp Image 2026-02-22 at 11.01.07 AM.jpeg,person_1_sudhanshu,,0.0,False,False,54.58,0.0,54.58,,
+C:\CapstoneVer3\backend\evaluation\dataset\raw\person_1_sudhanshu\WhatsApp Image 2026-04-12 at 11.26.04 AM (1).jpeg,person_1_sudhanshu,person_1_sudhanshu,0.0,True,False,43.048,10.91,53.958,0.6794,"[204, 136, 369, 301]"
+C:\CapstoneVer3\backend\evaluation\dataset\raw\person_1_sudhanshu\WhatsApp Image 2026-04-12 at 11.22.56 AM (2).jpeg,person_1_sudhanshu,,0.0,False,False,17.69,0.0,17.69,,
+C:\CapstoneVer3\backend\evaluation\dataset\raw\person_1_sudhanshu\WhatsApp Image 2026-04-12 at 11.22.56 AM.jpeg,person_1_sudhanshu,person_2_shaunak,0.0,True,False,43.329,10.66,53.989,0.6015,"[408, 237, 484, 313]"
+C:\CapstoneVer3\backend\evaluation\dataset\raw\person_1_sudhanshu\WhatsApp Image 2026-04-12 at 11.22.53 AM (2).jpeg,person_1_sudhanshu,,0.0,False,False,40.655,0.0,40.655,,
+C:\CapstoneVer3\backend\evaluation\dataset\raw\person_1_sudhanshu\WhatsApp Image 2026-04-12 at 11.26.08 AM (2).jpeg,person_1_sudhanshu,,0.0,False,False,44.646,0.0,44.646,,
+C:\CapstoneVer3\backend\evaluation\dataset\raw\person_1_sudhanshu\WhatsApp Image 2026-02-22 at 11.01.06 AM (1).jpeg,person_1_sudhanshu,,0.0,False,False,22.607,0.0,22.607,,
+C:\CapstoneVer3\backend\evaluation\dataset\raw\person_2_shaunak\WhatsApp Image 2026-02-21 at 10.12.00 AM.jpeg,person_2_shaunak,person_1_sudhanshu,0.0,True,False,53.585,10.649,64.234,0.5515,"[234, 197, 478, 441]"
+C:\CapstoneVer3\backend\evaluation\dataset\raw\person_2_shaunak\WhatsApp Image 2026-04-01 at 2.52.09 PM (22).jpeg,person_2_shaunak,,0.0,False,False,114.23,0.0,114.23,,
+C:\CapstoneVer3\backend\evaluation\dataset\raw\person_2_shaunak\WhatsApp Image 2026-04-01 at 2.52.09 PM (24).jpeg,person_2_shaunak,person_2_shaunak,0.0,True,False,96.391,12.901,109.292,0.5057,"[337, 465, 410, 538]"
+C:\CapstoneVer3\backend\evaluation\dataset\raw\person_2_shaunak\WhatsApp Image 2026-02-21 at 10.12.00 AM (2).jpeg,person_2_shaunak,person_2_shaunak,0.0,True,False,112.251,12.46,124.711,0.6859,"[124, 109, 482, 467]"
+C:\CapstoneVer3\backend\evaluation\dataset\raw\person_2_shaunak\WhatsApp Image 2026-04-01 at 2.52.09 PM (25).jpeg,person_2_shaunak,person_1_sudhanshu,0.0,True,False,26.659,79.373,106.032,0.6549,"[221, 180, 295, 254]"
+C:\CapstoneVer3\backend\evaluation\dataset\raw\person_2_shaunak\WhatsApp Image 2026-02-21 at 4.04.43 PM.jpeg,person_2_shaunak,person_2_shaunak,0.0,True,False,59.706,53.749,113.455,0.551,"[366, 217, 622, 473]"
+C:\CapstoneVer3\backend\evaluation\dataset\raw\person_2_shaunak\WhatsApp Image 2026-02-21 at 10.12.02 AM.jpeg,person_2_shaunak,,0.0,False,False,93.885,0.0,93.885,,
+C:\CapstoneVer3\backend\evaluation\dataset\raw\person_2_shaunak\WhatsApp Image 2026-04-01 at 2.52.09 PM (29).jpeg,person_2_shaunak,,0.0,False,False,73.289,0.0,73.289,,
+C:\CapstoneVer3\backend\evaluation\dataset\raw\person_2_shaunak\WhatsApp Image 2026-02-21 at 10.12.01 AM (1).jpeg,person_2_shaunak,person_1_sudhanshu,0.0,True,False,93.31,42.917,136.227,0.6371,"[141, 103, 496, 458]"
+C:\CapstoneVer3\backend\evaluation\dataset\raw\person_2_shaunak\WhatsApp Image 2026-02-21 at 10.12.01 AM (2).jpeg,person_2_shaunak,,0.0,False,False,49.344,0.0,49.344,,
+C:\CapstoneVer3\backend\evaluation\dataset\raw\person_2_shaunak\WhatsApp Image 2026-04-01 at 2.52.09 PM (6).jpeg,person_2_shaunak,person_1_sudhanshu,0.0,True,False,51.212,23.179,74.391,0.6724,"[254, 304, 352, 402]"
+C:\CapstoneVer3\backend\evaluation\dataset\raw\person_2_shaunak\WhatsApp Image 2026-04-01 at 2.52.09 PM (31).jpeg,person_2_shaunak,person_1_sudhanshu,0.0,True,False,22.275,45.53,67.805,0.632,"[334, 177, 483, 326]"
+C:\CapstoneVer3\backend\evaluation\dataset\raw\person_2_shaunak\WhatsApp Image 2026-02-21 at 10.12.02 AM (2).jpeg,person_2_shaunak,,0.0,False,False,57.341,0.0,57.341,,
+C:\CapstoneVer3\backend\evaluation\dataset\raw\person_2_shaunak\WhatsApp Image 2026-04-01 at 2.52.09 PM (20).jpeg,person_2_shaunak,person_2_shaunak,0.0,True,False,65.322,15.511,80.833,0.6891,"[262, 92, 382, 212]"
+C:\CapstoneVer3\backend\evaluation\dataset\raw\person_2_shaunak\WhatsApp Image 2026-04-01 at 2.52.09 PM (21).jpeg,person_2_shaunak,person_2_shaunak,0.0,True,False,61.209,39.977,101.186,0.5791,"[275, 112, 374, 211]"
+C:\CapstoneVer3\backend\evaluation\dataset\raw\person_3_srishti\IMG_1207.jpg,person_3_srishti,person_2_shaunak,0.0,True,False,39.529,35.053,74.582,0.7222,"[226, 214, 434, 422]"
+C:\CapstoneVer3\backend\evaluation\dataset\raw\person_3_srishti\WhatsApp Image 2026-02-21 at 12.19.35 PM (1).jpeg,person_3_srishti,person_1_sudhanshu,0.0,True,False,74.72,27.237,101.957,0.6006,"[196, 223, 440, 467]"
+C:\CapstoneVer3\backend\evaluation\dataset\raw\person_3_srishti\WhatsApp Image 2026-02-21 at 12.04.25 PM.jpeg,person_3_srishti,person_2_shaunak,0.0,True,False,28.128,15.46,43.588,0.6265,"[220, 141, 572, 493]"
+C:\CapstoneVer3\backend\evaluation\dataset\raw\person_3_srishti\IMG_1236.jpg,person_3_srishti,person_2_shaunak,0.0,True,False,53.745,14.131,67.876,0.661,"[280, 205, 366, 291]"
+C:\CapstoneVer3\backend\evaluation\dataset\raw\person_3_srishti\IMG_1171.jpg,person_3_srishti,person_2_shaunak,0.0,True,False,55.702,13.216,68.918,0.6538,"[162, 178, 454, 470]"
+C:\CapstoneVer3\backend\evaluation\dataset\raw\person_3_srishti\IMG_1208.jpg,person_3_srishti,person_2_shaunak,0.0,True,False,53.704,12.293,65.997,0.6794,"[147, 200, 410, 463]"
+C:\CapstoneVer3\backend\evaluation\dataset\raw\person_3_srishti\WhatsApp Image 2026-02-21 at 12.04.23 PM (2).jpeg,person_3_srishti,,0.0,False,False,21.759,0.0,21.759,,
+C:\CapstoneVer3\backend\evaluation\dataset\raw\person_3_srishti\WhatsApp Image 2026-02-21 at 12.04.24 PM (1).jpeg,person_3_srishti,,0.0,False,False,28.368,0.0,28.368,,
+C:\CapstoneVer3\backend\evaluation\dataset\raw\person_3_srishti\IMG_1197.jpg,person_3_srishti,person_2_shaunak,0.0,True,False,39.045,12.619,51.664,0.665,"[179, 186, 436, 443]"
+C:\CapstoneVer3\backend\evaluation\dataset\raw\person_3_srishti\IMG_1138.jpg,person_3_srishti,person_2_shaunak,0.0,True,False,80.889,32.561,113.45,0.5643,"[427, 340, 558, 471]"
+C:\CapstoneVer3\backend\evaluation\dataset\raw\person_3_srishti\IMG_1203.jpg,person_3_srishti,,0.0,False,False,58.579,0.0,58.579,,
+C:\CapstoneVer3\backend\evaluation\dataset\raw\person_3_srishti\WhatsApp Image 2026-02-21 at 12.19.34 PM (2).jpeg,person_3_srishti,person_2_shaunak,0.0,True,False,47.53,32.861,80.391,0.5939,"[54, 163, 296, 405]"
+C:\CapstoneVer3\backend\evaluation\dataset\raw\person_3_srishti\IMG_1135.jpg,person_3_srishti,person_2_shaunak,0.0,True,False,98.483,10.934,109.417,0.63,"[245, 204, 391, 350]"
+C:\CapstoneVer3\backend\evaluation\dataset\raw\person_3_srishti\IMG_1202.jpg,person_3_srishti,,0.0,False,False,40.606,0.0,40.606,,
+C:\CapstoneVer3\backend\evaluation\dataset\raw\person_3_srishti\WhatsApp Image 2026-02-21 at 12.04.24 PM (3).jpeg,person_3_srishti,,0.0,False,False,39.569,0.0,39.569,,
+C:\CapstoneVer3\backend\evaluation\dataset\raw\person_3_srishti\IMG_1143.jpg,person_3_srishti,person_3_srishti,0.0,True,False,45.128,11.595,56.723,0.5253,"[243, 451, 341, 549]"
+C:\CapstoneVer3\backend\evaluation\dataset\raw\person_3_srishti\WhatsApp Image 2026-02-21 at 12.04.26 PM (1).jpeg,person_3_srishti,,0.0,False,False,20.32,0.0,20.32,,
+C:\CapstoneVer3\backend\evaluation\dataset\raw\person_3_srishti\WhatsApp Image 2026-03-31 at 6.40.25 PM.jpeg,person_3_srishti,person_2_shaunak,0.0,True,False,67.295,10.037,77.332,0.6587,"[283, 211, 355, 283]"
+C:\CapstoneVer3\backend\evaluation\dataset\raw\person_3_srishti\IMG_1190.jpg,person_3_srishti,person_2_shaunak,0.0,True,False,40.757,9.966,50.723,0.6478,"[295, 251, 430, 386]"
+C:\CapstoneVer3\backend\evaluation\dataset\raw\person_3_srishti\IMG_1152.jpg,person_3_srishti,person_2_shaunak,0.0,True,False,58.777,9.993,68.77,0.7233,"[152, 196, 449, 493]"
+C:\CapstoneVer3\backend\evaluation\dataset\raw\person_3_srishti\WhatsApp Image 2026-02-21 at 12.19.35 PM (2).jpeg,person_3_srishti,person_1_sudhanshu,0.0,True,False,48.971,9.991,58.962,0.6018,"[233, 269, 460, 496]"
+C:\CapstoneVer3\backend\evaluation\dataset\raw\person_3_srishti\WhatsApp Image 2026-02-21 at 12.04.25 PM (2).jpeg,person_3_srishti,person_2_shaunak,0.0,True,False,38.709,9.987,48.696,0.5954,"[132, 154, 466, 488]"
+C:\CapstoneVer3\backend\evaluation\dataset\raw\person_3_srishti\IMG_1167.jpg,person_3_srishti,person_1_sudhanshu,0.0,True,False,24.029,10.085,34.114,0.7098,"[188, 209, 493, 514]"
+C:\CapstoneVer3\backend\evaluation\dataset\raw\person_3_srishti\IMG_1153.jpg,person_3_srishti,person_2_shaunak,0.0,True,False,64.661,9.954,74.615,0.6772,"[151, 186, 463, 498]"
+C:\CapstoneVer3\backend\evaluation\dataset\raw\person_3_srishti\WhatsApp Image 2026-02-21 at 12.04.25 PM (3).jpeg,person_3_srishti,person_2_shaunak,0.0,True,False,34.449,11.418,45.867,0.5639,"[129, 160, 473, 504]"
+C:\CapstoneVer3\backend\evaluation\dataset\raw\person_3_srishti\IMG_1184.jpg,person_3_srishti,person_2_shaunak,0.0,True,False,40.113,12.458,52.571,0.6499,"[238, 168, 420, 350]"
+C:\CapstoneVer3\backend\evaluation\dataset\raw\person_3_srishti\IMG_1168.jpg,person_3_srishti,,0.0,False,False,40.2,0.0,40.2,,
+C:\CapstoneVer3\backend\evaluation\dataset\raw\person_3_srishti\IMG_20240615_003434.jpg,person_3_srishti,,0.0,False,False,86.188,0.0,86.188,,
+C:\CapstoneVer3\backend\evaluation\dataset\raw\person_3_srishti\IMG_1192.jpg,person_3_srishti,person_2_shaunak,0.0,True,False,43.68,11.94,55.62,0.6227,"[274, 264, 422, 412]"
+C:\CapstoneVer3\backend\evaluation\dataset\raw\person_3_srishti\IMG-20240618-WA0044.jpg,person_3_srishti,person_2_shaunak,0.0,True,False,34.851,12.875,47.726,0.6162,"[265, 265, 302, 302]"
+C:\CapstoneVer3\backend\evaluation\dataset\raw\person_3_srishti\WhatsApp Image 2026-03-31 at 6.43.50 PM.jpeg,person_3_srishti,,0.0,False,False,63.109,0.0,63.109,,
+C:\CapstoneVer3\backend\evaluation\dataset\raw\person_3_srishti\Screenshot 2026-03-31 175000.png,person_3_srishti,person_2_shaunak,0.0,True,False,26.91,17.744,44.654,0.6403,"[199, 133, 393, 327]"
+C:\CapstoneVer3\backend\evaluation\dataset\raw\person_4_ashlesha\WhatsApp Image 2026-03-31 at 18.33.34.jpeg,person_4_ashlesha,person_2_shaunak,0.0,True,False,41.721,25.209,66.93,0.6419,"[233, 85, 385, 237]"
+C:\CapstoneVer3\backend\evaluation\dataset\raw\person_4_ashlesha\WhatsApp Image 2026-03-31 at 18.54.21.jpeg,person_4_ashlesha,person_2_shaunak,0.0,True,False,34.767,34.459,69.226,0.6748,"[232, 145, 440, 353]"
+C:\CapstoneVer3\backend\evaluation\dataset\raw\person_4_ashlesha\WhatsApp Image 2026-03-31 at 18.33.33.jpeg,person_4_ashlesha,,0.0,False,False,44.849,0.0,44.849,,
+C:\CapstoneVer3\backend\evaluation\dataset\raw\person_4_ashlesha\WhatsApp Image 2026-03-31 at 18.33.05 (1).jpeg,person_4_ashlesha,,0.0,False,False,17.758,0.0,17.758,,
+C:\CapstoneVer3\backend\evaluation\dataset\raw\person_4_ashlesha\WhatsApp Image 2026-03-31 at 18.33.38.jpeg,person_4_ashlesha,person_1_sudhanshu,0.0,True,False,45.475,15.801,61.276,0.7247,"[274, 189, 368, 283]"
+C:\CapstoneVer3\backend\evaluation\dataset\raw\person_4_ashlesha\WhatsApp Image 2026-02-21 at 3.59.58 PM (1).jpeg,person_4_ashlesha,person_2_shaunak,0.0,True,False,25.9,43.819,69.719,0.6263,"[164, 440, 354, 630]"
+C:\CapstoneVer3\backend\evaluation\dataset\raw\person_4_ashlesha\WhatsApp Image 2026-03-31 at 18.33.39.jpeg,person_4_ashlesha,person_2_shaunak,0.0,True,False,40.26,10.068,50.328,0.6004,"[316, 245, 386, 315]"
+C:\CapstoneVer3\backend\evaluation\dataset\raw\person_4_ashlesha\IMG_1124.jpg,person_4_ashlesha,person_2_shaunak,0.0,True,False,77.921,10.022,87.943,0.5788,"[421, 502, 488, 569]"
+C:\CapstoneVer3\backend\evaluation\dataset\raw\person_4_ashlesha\IMG_1175.jpg,person_4_ashlesha,person_2_shaunak,0.0,True,False,55.43,10.847,66.277,0.6544,"[254, 303, 368, 417]"
+C:\CapstoneVer3\backend\evaluation\dataset\raw\person_4_ashlesha\WhatsApp Image 2026-03-31 at 18.33.02.jpeg,person_4_ashlesha,person_2_shaunak,0.0,True,False,30.533,10.542,41.075,0.7478,"[251, 290, 349, 388]"
+C:\CapstoneVer3\backend\evaluation\dataset\raw\person_4_ashlesha\IMG_1181.jpg,person_4_ashlesha,person_2_shaunak,0.0,True,False,28.442,11.198,39.64,0.6884,"[259, 251, 370, 362]"
+C:\CapstoneVer3\backend\evaluation\dataset\raw\person_4_ashlesha\WhatsApp Image 2026-03-31 at 18.54.25 (1).jpeg,person_4_ashlesha,,0.0,False,False,29.972,0.0,29.972,,
+C:\CapstoneVer3\backend\evaluation\dataset\raw\person_4_ashlesha\IMG_1118.jpg,person_4_ashlesha,person_2_shaunak,0.0,True,False,80.625,11.048,91.673,0.664,"[84, 259, 358, 533]"
+C:\CapstoneVer3\backend\evaluation\dataset\raw\person_4_ashlesha\IMG_1126.jpg,person_4_ashlesha,person_2_shaunak,0.0,True,False,79.316,10.455,89.771,0.6584,"[218, 345, 348, 475]"
+C:\CapstoneVer3\backend\evaluation\dataset\raw\person_4_ashlesha\WhatsApp Image 2026-03-31 at 18.54.23 (1).jpeg,person_4_ashlesha,person_2_shaunak,0.0,True,False,38.319,11.154,49.473,0.5657,"[257, 252, 374, 369]"
+C:\CapstoneVer3\backend\evaluation\dataset\raw\person_4_ashlesha\WhatsApp Image 2026-02-21 at 3.59.59 PM (3).jpeg,person_4_ashlesha,person_2_shaunak,0.0,True,False,36.621,10.256,46.877,0.692,"[168, 180, 409, 421]"
+C:\CapstoneVer3\backend\evaluation\dataset\raw\person_4_ashlesha\IMG_1120.jpg,person_4_ashlesha,person_1_sudhanshu,0.0,True,False,28.052,12.412,40.464,0.6503,"[266, 312, 387, 433]"
+C:\CapstoneVer3\backend\evaluation\dataset\raw\person_4_ashlesha\IMG_1219.jpg,person_4_ashlesha,,0.0,False,False,13.413,0.0,13.413,,
+C:\CapstoneVer3\backend\evaluation\dataset\raw\person_4_ashlesha\WhatsApp Image 2026-03-31 at 18.33.58.jpeg,person_4_ashlesha,,0.0,False,False,29.031,0.0,29.031,,
+C:\CapstoneVer3\backend\evaluation\dataset\raw\person_4_ashlesha\IMG_1229.jpg,person_4_ashlesha,,0.0,False,False,35.624,0.0,35.624,,
+C:\CapstoneVer3\backend\evaluation\dataset\raw\person_4_ashlesha\IMG_1127.jpg,person_4_ashlesha,person_1_sudhanshu,0.0,True,False,26.384,10.925,37.309,0.6838,"[183, 247, 447, 511]"
+C:\CapstoneVer3\backend\evaluation\dataset\raw\person_4_ashlesha\WhatsApp Image 2026-03-31 at 18.54.25.jpeg,person_4_ashlesha,person_2_shaunak,0.0,True,False,122.046,13.214,135.26,0.7714,"[264, 287, 356, 379]"
+C:\CapstoneVer3\backend\evaluation\dataset\raw\person_4_ashlesha\IMG_1234.jpg,person_4_ashlesha,person_2_shaunak,0.0,True,False,39.177,12.346,51.523,0.6944,"[293, 280, 363, 350]"
+C:\CapstoneVer3\backend\evaluation\dataset\raw\person_4_ashlesha\IMG_1221.jpg,person_4_ashlesha,person_2_shaunak,0.0,True,False,17.985,11.685,29.67,0.6481,"[192, 334, 358, 500]"
+C:\CapstoneVer3\backend\evaluation\dataset\raw\person_4_ashlesha\IMG_1226.jpg,person_4_ashlesha,person_1_sudhanshu,0.0,True,False,16.511,10.063,26.574,0.7557,"[219, 344, 387, 512]"
+C:\CapstoneVer3\backend\evaluation\dataset\raw\person_4_ashlesha\WhatsApp Image 2026-03-31 at 18.54.17.jpeg,person_4_ashlesha,person_1_sudhanshu,0.0,True,False,20.294,10.765,31.059,0.639,"[238, 226, 403, 391]"
+C:\CapstoneVer3\backend\evaluation\dataset\raw\person_4_ashlesha\IMG_1227.jpg,person_4_ashlesha,person_1_sudhanshu,0.0,True,False,69.895,11.513,81.408,0.6191,"[203, 320, 399, 516]"
+C:\CapstoneVer3\backend\evaluation\dataset\raw\person_4_ashlesha\WhatsApp Image 2026-03-31 at 18.33.31.jpeg,person_4_ashlesha,person_1_sudhanshu,0.0,True,False,62.046,10.845,72.891,0.6489,"[322, 222, 426, 326]"
+C:\CapstoneVer3\backend\evaluation\dataset\raw\person_4_ashlesha\WhatsApp Image 2026-02-21 at 3.59.59 PM.jpeg,person_4_ashlesha,,0.0,False,False,39.973,0.0,39.973,,
+C:\CapstoneVer3\backend\evaluation\dataset\raw\person_4_ashlesha\WhatsApp Image 2026-02-21 at 3.59.59 PM (2).jpeg,person_4_ashlesha,,0.0,False,False,42.191,0.0,42.191,,
+C:\CapstoneVer3\backend\evaluation\dataset\raw\person_4_ashlesha\WhatsApp Image 2026-03-31 at 18.54.24.jpeg,person_4_ashlesha,person_1_sudhanshu,0.0,True,False,29.988,12.503,42.491,0.531,"[234, 181, 435, 382]"
+C:\CapstoneVer3\backend\evaluation\dataset\raw\person_4_ashlesha\IMG_1233.jpg,person_4_ashlesha,,0.0,False,False,34.27,0.0,34.27,,

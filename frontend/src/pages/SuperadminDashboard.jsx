@@ -6,8 +6,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Users, ShieldCheck, Plus, BookOpen, Activity, Shield, UserCog, Mail, Building, Landmark, Phone, Crown } from 'lucide-react';
-import { getUsers, createAdmin, createTeacher } from '@/services/api';
+import { Users, ShieldCheck, Plus, BookOpen, Activity, Shield, UserCog, Mail, Building, Landmark, Phone, Crown, ShieldOff } from 'lucide-react';
+import { getUsers, createAdmin, createTeacher, revokeUser } from '@/services/api';
 
 export default function SuperadminDashboard() {
   const navigate = useNavigate();
@@ -73,6 +73,18 @@ export default function SuperadminDashboard() {
       setError(err?.response?.data?.detail || 'Failed to create faculty.');
     } finally {
       setCreatingTeacher(false);
+    }
+  };
+
+  const handleRevokeUser = async (userId, userName) => {
+    if (!window.confirm(`Revoke elevated rights for "${userName}"? They will be demoted to Teacher level.`)) return;
+    try {
+      await revokeUser(userId);
+      setSuccess(`Rights revoked for "${userName}". Account demoted to Teacher.`);
+      const updated = await getUsers();
+      setUsers(updated);
+    } catch (err) {
+      setError(err?.response?.data?.detail || 'Failed to revoke user rights.');
     }
   };
 
@@ -177,6 +189,7 @@ export default function SuperadminDashboard() {
                           <TableHead className="text-slate-600 dark:text-slate-400">Department</TableHead>
                           <TableHead className="text-slate-600 dark:text-slate-400">School</TableHead>
                           <TableHead className="text-slate-600 dark:text-slate-400">Role</TableHead>
+                          <TableHead className="text-slate-600 dark:text-slate-400 text-right">Revoke</TableHead>
                         </TableRow>
                       </TableHeader>
                       <TableBody>
@@ -190,6 +203,17 @@ export default function SuperadminDashboard() {
                             <TableCell className="text-slate-700 dark:text-slate-300">{u.school}</TableCell>
                             <TableCell>
                               {privilegeLabel(u.privilege_level)}
+                            </TableCell>
+                            <TableCell className="text-right">
+                              {u.privilege_level === 2 && (
+                                <button
+                                  onClick={() => handleRevokeUser(u.user_id, u.name)}
+                                  title="Revoke admin rights — demote to Teacher"
+                                  className="inline-flex items-center gap-1 px-2.5 py-1 rounded-md text-[11px] font-bold uppercase tracking-wider bg-red-500/10 text-red-400 border border-red-500/20 hover:bg-red-500/20 transition-colors"
+                                >
+                                  <ShieldOff className="h-3 w-3" /> Revoke
+                                </button>
+                              )}
                             </TableCell>
                           </TableRow>
                         ))}

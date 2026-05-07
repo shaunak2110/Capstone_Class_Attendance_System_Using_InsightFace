@@ -1,0 +1,4 @@
+# file: C:\CapstoneVer3\backend\evaluation\configs\config.py
+# hypothesis_version: 6.151.9
+
+[0.0, 0.7, 0.85, 1.0, 640, 'ExperimentConfig', 'dataset_path', 'detectors', 'failures', 'gallery_ratio', 'image_size', 'logs', 'num_runs', 'open_set_ratio', 'output_dir', 'plots', 'r', 'random_seed', 'recognizers', 'reports', 'results/', 'similarity_threshold', 'utf-8']

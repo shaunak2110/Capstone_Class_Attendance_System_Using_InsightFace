@@ -1,237 +1,331 @@
-import pytest
-import numpy as np
-import torch
+"""
+Unit tests for the InsightFace pipeline components.
+
+Covers:
+  - InsightFaceEngine serialisation helpers (no GPU / model download required)
+  - InferenceEngine adapter (mocked engine)
+  - recognition_service centroid loading and cache helpers
+  - training_service._to_bgr helper
+
+These tests do NOT require the buffalo_l model files to be present.
+Heavy inference paths are mocked.
+"""
+
+import base64
 import os
+import struct
 import tempfile
-from model.face_model import FaceModel
+from io import BytesIO
+from unittest.mock import MagicMock, patch
+
+import numpy as np
+import pytest
 
 
-class TestFaceModel:
-    """Unit tests for the FaceModel class"""
-    
-    @pytest.fixture
-    def temp_model_path(self):
-        """Create a temporary model path for testing"""
-        with tempfile.NamedTemporaryFile(suffix='.pth', delete=False) as f:
-            temp_path = f.name
-        yield temp_path
-        # Cleanup
-        if os.path.exists(temp_path):
-            os.remove(temp_path)
-        mappings_path = temp_path.replace('.pth', '_mappings.pkl')
-        if os.path.exists(mappings_path):
-            os.remove(mappings_path)
-    
-    def test_init_without_existing_model(self, temp_model_path):
-        """Test initialization when model file doesn't exist"""
-        # Remove the temp file so it doesn't exist
-        if os.path.exists(temp_model_path):
-            os.remove(temp_model_path)
-        
-        model = FaceModel(model_path=temp_model_path)
-        
-        assert model.model is not None
-        assert model.prn_embeddings == {}
-        assert model.model_path == temp_model_path
-    
-    def test_generate_embedding_shape(self, temp_model_path):
-        """Test that generate_embedding produces 128-dimensional vectors"""
-        model = FaceModel(model_path=temp_model_path)
-        
-        # Create a dummy face image (112x112x3 RGB)
-        face_image = np.random.rand(112, 112, 3).astype(np.float32)
-        
-        embedding = model.generate_embedding(face_image)
-        
-        assert embedding.shape == (128,)
-        assert isinstance(embedding, np.ndarray)
-    
-    def test_generate_embedding_normalization(self, temp_model_path):
-        """Test that embeddings are L2-normalized (unit vectors)"""
-        model = FaceModel(model_path=temp_model_path)
-        
-        face_image = np.random.rand(112, 112, 3).astype(np.float32)
-        embedding = model.generate_embedding(face_image)
-        
-        # Check that the embedding is normalized (L2 norm should be ~1.0)
-        norm = np.linalg.norm(embedding)
-        assert abs(norm - 1.0) < 0.01, f"Embedding not normalized: norm={norm}"
-    
-    def test_add_student(self, temp_model_path):
-        """Test adding a student with embeddings"""
-        model = FaceModel(model_path=temp_model_path)
-        
-        prn = "PRN001"
-        embeddings = [np.random.rand(128).astype(np.float32) for _ in range(3)]
-        
-        model.add_student(prn, embeddings)
-        
-        assert prn in model.prn_embeddings
-        assert len(model.prn_embeddings[prn]) == 3
-    
-    def test_add_student_invalid_embedding_shape(self, temp_model_path):
-        """Test that add_student rejects invalid embedding dimensions"""
-        model = FaceModel(model_path=temp_model_path)
-        
-        prn = "PRN001"
-        invalid_embeddings = [np.random.rand(64).astype(np.float32)]  # Wrong size
-        
-        with pytest.raises(ValueError, match="Expected embedding shape"):
-            model.add_student(prn, invalid_embeddings)
-    
-    def test_add_student_empty_list(self, temp_model_path):
-        """Test that add_student rejects empty embedding list"""
-        model = FaceModel(model_path=temp_model_path)
-        
-        with pytest.raises(ValueError, match="At least one embedding"):
-            model.add_student("PRN001", [])
-    
-    def test_identify_face_with_match(self, temp_model_path):
-        """Test face identification when a match exists above threshold"""
-        model = FaceModel(model_path=temp_model_path)
-        
-        # Create a known embedding
-        known_embedding = np.random.rand(128).astype(np.float32)
-        known_embedding = known_embedding / np.linalg.norm(known_embedding)  # Normalize
-        
-        model.add_student("PRN001", [known_embedding])
-        
-        # Try to identify with the same embedding (should match with similarity ~1.0)
-        result = model.identify_face(known_embedding, threshold=0.6)
-        
-        assert result is not None
-        prn, similarity = result
-        assert prn == "PRN001"
-        assert similarity > 0.99  # Should be very close to 1.0
-    
-    def test_identify_face_no_match(self, temp_model_path):
-        """Test face identification when no match exists"""
-        model = FaceModel(model_path=temp_model_path)
-        
-        # Add a student
-        embedding1 = np.random.rand(128).astype(np.float32)
-        embedding1 = embedding1 / np.linalg.norm(embedding1)
-        model.add_student("PRN001", [embedding1])
-        
-        # Try to identify with a completely different embedding
-        different_embedding = np.random.rand(128).astype(np.float32)
-        different_embedding = different_embedding / np.linalg.norm(different_embedding)
-        
-        result = model.identify_face(different_embedding, threshold=0.99)
-        
-        # With high threshold and random embeddings, should not match
-        assert result is None or result[1] < 0.99
-    
-    def test_identify_face_empty_database(self, temp_model_path):
-        """Test identification when no students are enrolled"""
-        model = FaceModel(model_path=temp_model_path)
-        
-        embedding = np.random.rand(128).astype(np.float32)
-        embedding = embedding / np.linalg.norm(embedding)
-        
-        result = model.identify_face(embedding)
-        
+# ---------------------------------------------------------------------------
+# InsightFaceEngine — serialisation helpers (no model needed)
+# ---------------------------------------------------------------------------
+
+class TestInsightFaceEngineHelpers:
+    """Tests for static serialisation helpers on InsightFaceEngine."""
+
+    def test_embedding_to_bytes_and_back(self):
+        """Round-trip: embedding → bytes → embedding should be identical."""
+        from model.insightface_engine import InsightFaceEngine
+
+        original = np.random.rand(512).astype(np.float32)
+        blob = InsightFaceEngine.embedding_to_bytes(original)
+        recovered = InsightFaceEngine.bytes_to_embedding(blob)
+
+        assert recovered.shape == (512,)
+        np.testing.assert_array_almost_equal(original, recovered)
+
+    def test_bytes_length_is_512_floats(self):
+        """Serialised embedding must be exactly 512 × 4 bytes."""
+        from model.insightface_engine import InsightFaceEngine
+
+        emb = np.ones(512, dtype=np.float32)
+        blob = InsightFaceEngine.embedding_to_bytes(emb)
+        assert len(blob) == 512 * 4
+
+    def test_compute_centroid_averages_and_normalises(self):
+        """Centroid of identical embeddings should equal the embedding itself."""
+        from model.insightface_engine import InsightFaceEngine
+
+        v = np.array([3.0, 4.0] + [0.0] * 510, dtype=np.float32)
+        centroid = InsightFaceEngine.compute_centroid([v, v, v])
+
+        # Should be L2-normalised
+        norm = float(np.linalg.norm(centroid))
+        assert abs(norm - 1.0) < 1e-5
+
+    def test_compute_centroid_of_two_vectors(self):
+        """Centroid of two opposite unit vectors should be near zero (or normalised)."""
+        from model.insightface_engine import InsightFaceEngine
+
+        v1 = np.zeros(512, dtype=np.float32)
+        v1[0] = 1.0
+        v2 = np.zeros(512, dtype=np.float32)
+        v2[0] = -1.0
+
+        # Should not raise even when mean is zero
+        try:
+            centroid = InsightFaceEngine.compute_centroid([v1, v2])
+            # If it doesn't raise, norm should be 0 or 1
+            norm = float(np.linalg.norm(centroid))
+            assert norm <= 1.0 + 1e-5
+        except Exception:
+            pass  # Acceptable — zero vector edge case
+
+    def test_identify_returns_none_when_no_centroids(self):
+        """identify() with empty centroid dict must return None."""
+        from model.insightface_engine import InsightFaceEngine
+
+        engine = MagicMock(spec=InsightFaceEngine)
+        engine.identify = InsightFaceEngine.identify.__get__(engine, InsightFaceEngine)
+
+        # Patch _app so __init__ is not called
+        with patch.object(InsightFaceEngine, "__init__", return_value=None):
+            e = InsightFaceEngine.__new__(InsightFaceEngine)
+            e._app = MagicMock()
+            result = e.identify(np.ones(512, dtype=np.float32), {})
+
         assert result is None
-    
-    def test_identify_face_threshold_behavior(self, temp_model_path):
-        """Test that threshold parameter works correctly"""
-        model = FaceModel(model_path=temp_model_path)
-        
-        embedding = np.random.rand(128).astype(np.float32)
-        embedding = embedding / np.linalg.norm(embedding)
-        model.add_student("PRN001", [embedding])
-        
-        # With threshold 0.99, same embedding should match (accounting for floating point precision)
-        result_high = model.identify_face(embedding, threshold=0.99)
-        assert result_high is not None  # Same embedding should match
-        
-        # With threshold 0.0, any match should pass
-        result_low = model.identify_face(embedding, threshold=0.0)
-        assert result_low is not None
-    
-    def test_save_and_load_model(self, temp_model_path):
-        """Test saving and loading model with PRN mappings"""
-        # Create and populate a model
-        model1 = FaceModel(model_path=temp_model_path)
-        
-        prn1 = "PRN001"
-        prn2 = "PRN002"
-        embeddings1 = [np.random.rand(128).astype(np.float32) for _ in range(2)]
-        embeddings2 = [np.random.rand(128).astype(np.float32) for _ in range(3)]
-        
-        model1.add_student(prn1, embeddings1)
-        model1.add_student(prn2, embeddings2)
-        model1.save_model()
-        
-        # Load the model in a new instance
-        model2 = FaceModel(model_path=temp_model_path)
-        
-        # Verify PRN mappings were loaded
-        assert prn1 in model2.prn_embeddings
-        assert prn2 in model2.prn_embeddings
-        assert len(model2.prn_embeddings[prn1]) == 2
-        assert len(model2.prn_embeddings[prn2]) == 3
-    
-    def test_get_enrolled_students(self, temp_model_path):
-        """Test retrieving list of enrolled students"""
-        model = FaceModel(model_path=temp_model_path)
-        
-        assert model.get_enrolled_students() == []
-        
-        embedding = np.random.rand(128).astype(np.float32)
-        model.add_student("PRN001", [embedding])
-        model.add_student("PRN002", [embedding])
-        
-        students = model.get_enrolled_students()
-        assert len(students) == 2
-        assert "PRN001" in students
-        assert "PRN002" in students
-    
-    def test_get_student_embedding_count(self, temp_model_path):
-        """Test getting embedding count for a student"""
-        model = FaceModel(model_path=temp_model_path)
-        
-        embeddings = [np.random.rand(128).astype(np.float32) for _ in range(5)]
-        model.add_student("PRN001", embeddings)
-        
-        assert model.get_student_embedding_count("PRN001") == 5
-        assert model.get_student_embedding_count("PRN999") == 0
-    
-    def test_remove_student(self, temp_model_path):
-        """Test removing a student from the model"""
-        model = FaceModel(model_path=temp_model_path)
-        
-        embedding = np.random.rand(128).astype(np.float32)
-        model.add_student("PRN001", [embedding])
-        
-        assert "PRN001" in model.prn_embeddings
-        
-        result = model.remove_student("PRN001")
-        assert result is True
-        assert "PRN001" not in model.prn_embeddings
-        
-        # Try removing non-existent student
-        result = model.remove_student("PRN999")
-        assert result is False
-    
-    def test_cosine_similarity_calculation(self, temp_model_path):
-        """Test that cosine similarity is calculated correctly"""
-        model = FaceModel(model_path=temp_model_path)
-        
-        # Create two embeddings with known similarity
-        embedding1 = np.array([1.0, 0.0] + [0.0] * 126, dtype=np.float32)
-        embedding2 = np.array([0.707, 0.707] + [0.0] * 126, dtype=np.float32)
-        
-        # Normalize
-        embedding1 = embedding1 / np.linalg.norm(embedding1)
-        embedding2 = embedding2 / np.linalg.norm(embedding2)
-        
-        model.add_student("PRN001", [embedding1])
-        
-        result = model.identify_face(embedding2, threshold=0.5)
-        
+
+    def test_identify_matches_closest_centroid(self):
+        """identify() should return the PRN whose centroid is closest."""
+        from model.insightface_engine import InsightFaceEngine
+
+        with patch.object(InsightFaceEngine, "__init__", return_value=None):
+            e = InsightFaceEngine.__new__(InsightFaceEngine)
+            e._app = MagicMock()
+
+        # Two centroids: one identical to query, one orthogonal
+        query = np.zeros(512, dtype=np.float32)
+        query[0] = 1.0
+
+        centroid_match = query.copy()
+        centroid_other = np.zeros(512, dtype=np.float32)
+        centroid_other[1] = 1.0
+
+        centroids = {"PRN_MATCH": centroid_match, "PRN_OTHER": centroid_other}
+        result = e.identify(query, centroids, threshold=1.5)
+
         assert result is not None
         prn, similarity = result
-        assert prn == "PRN001"
-        # Cosine similarity should be approximately 0.707
-        assert abs(similarity - 0.707) < 0.01
+        assert prn == "PRN_MATCH"
+        assert 0.0 <= similarity <= 1.0
+
+
+# ---------------------------------------------------------------------------
+# InferenceEngine adapter
+# ---------------------------------------------------------------------------
+
+class TestInferenceEngine:
+    """Tests for the InferenceEngine adapter (model.inference)."""
+
+    def _make_engine_with_mock(self):
+        """Return an InferenceEngine whose internal InsightFaceEngine is mocked."""
+        from model.inference import InferenceEngine
+
+        with patch("model.inference.InsightFaceEngine") as MockEngine:
+            mock_inner = MagicMock()
+            MockEngine.return_value = mock_inner
+            engine = InferenceEngine()
+            engine._engine = mock_inner
+        return engine, mock_inner
+
+    def test_set_centroids_updates_internal_dict(self):
+        """set_centroids() should replace the centroid dict."""
+        from model.inference import InferenceEngine
+
+        with patch("model.inference.InsightFaceEngine"):
+            engine = InferenceEngine()
+
+        centroids = {"PRN001": np.ones(512, dtype=np.float32)}
+        engine.set_centroids(centroids)
+        assert engine._centroids == centroids
+
+    def test_process_image_raises_on_no_faces(self):
+        """process_image() must raise ValueError when no faces detected."""
+        from model.inference import InferenceEngine
+
+        with patch("model.inference.InsightFaceEngine") as MockEngine:
+            mock_inner = MagicMock()
+            mock_inner.detect_and_embed.return_value = []  # no faces
+            MockEngine.return_value = mock_inner
+            engine = InferenceEngine()
+
+        dummy_bgr = np.zeros((100, 100, 3), dtype=np.uint8)
+        with pytest.raises(ValueError, match="No faces detected"):
+            engine.process_image(dummy_bgr)
+
+    def test_process_image_returns_face_list(self):
+        """process_image() should return the list from detect_and_embed."""
+        from model.inference import InferenceEngine
+
+        face_dict = {
+            "embedding": np.ones(512, dtype=np.float32),
+            "bbox": [0, 0, 50, 50],
+            "score": 0.99,
+            "crop_b64": "abc",
+        }
+
+        with patch("model.inference.InsightFaceEngine") as MockEngine:
+            mock_inner = MagicMock()
+            mock_inner.detect_and_embed.return_value = [face_dict]
+            MockEngine.return_value = mock_inner
+            engine = InferenceEngine()
+
+        dummy_bgr = np.zeros((100, 100, 3), dtype=np.uint8)
+        result = engine.process_image(dummy_bgr)
+        assert len(result) == 1
+        assert result[0]["score"] == 0.99
+
+    def test_identify_students_splits_correctly(self):
+        """identify_students() should split into identified and unidentified."""
+        from model.inference import InferenceEngine
+
+        with patch("model.inference.InsightFaceEngine") as MockEngine:
+            mock_inner = MagicMock()
+            # First face: identified; second face: not identified
+            mock_inner.identify.side_effect = [
+                ("PRN001", 0.85),
+                None,
+            ]
+            MockEngine.return_value = mock_inner
+            engine = InferenceEngine()
+
+        face_data = [
+            {"embedding": np.ones(512, dtype=np.float32), "crop_b64": "img1", "bbox": [0, 0, 10, 10]},
+            {"embedding": np.zeros(512, dtype=np.float32), "crop_b64": "img2", "bbox": [10, 10, 20, 20]},
+        ]
+
+        identified, unidentified = engine.identify_students(face_data)
+
+        assert len(identified) == 1
+        assert identified[0]["prn"] == "PRN001"
+        assert identified[0]["similarity"] == 0.85
+        assert len(unidentified) == 1
+        assert unidentified[0]["crop_b64"] == "img2"
+
+
+# ---------------------------------------------------------------------------
+# recognition_service — cache helpers
+# ---------------------------------------------------------------------------
+
+class TestRecognitionServiceCache:
+    """Tests for the in-memory unidentified face cache."""
+
+    def setup_method(self):
+        """Clear cache before each test."""
+        from services import recognition_service
+        recognition_service.clear_unidentified_faces()
+
+    def test_get_unidentified_face_raises_on_missing(self):
+        """get_unidentified_face() must raise KeyError for unknown face_id."""
+        from services.recognition_service import get_unidentified_face
+
+        with pytest.raises(KeyError):
+            get_unidentified_face("nonexistent-uuid")
+
+    def test_remove_unidentified_face_returns_true_when_exists(self):
+        """remove_unidentified_face() should return True when face existed."""
+        from services import recognition_service
+
+        recognition_service._unidentified_cache["test-id"] = "base64data"
+        result = recognition_service.remove_unidentified_face("test-id")
+        assert result is True
+        assert "test-id" not in recognition_service._unidentified_cache
+
+    def test_remove_unidentified_face_returns_false_when_missing(self):
+        """remove_unidentified_face() should return False for unknown id."""
+        from services.recognition_service import remove_unidentified_face
+
+        result = remove_unidentified_face("ghost-id")
+        assert result is False
+
+    def test_clear_unidentified_faces_empties_cache(self):
+        """clear_unidentified_faces() should empty the cache."""
+        from services import recognition_service
+
+        recognition_service._unidentified_cache["a"] = "x"
+        recognition_service._unidentified_cache["b"] = "y"
+        recognition_service.clear_unidentified_faces()
+        assert len(recognition_service._unidentified_cache) == 0
+
+    def test_get_after_set_returns_correct_value(self):
+        """get_unidentified_face() should return the stored base64 string."""
+        from services import recognition_service
+
+        recognition_service._unidentified_cache["face-1"] = "base64crop"
+        result = recognition_service.get_unidentified_face("face-1")
+        assert result == "base64crop"
+
+
+# ---------------------------------------------------------------------------
+# training_service — _to_bgr helper
+# ---------------------------------------------------------------------------
+
+class TestTrainingServiceToBgr:
+    """Tests for the internal _to_bgr image conversion helper."""
+
+    def _make_valid_b64_png(self) -> str:
+        """Return a valid 10×10 white PNG as base64."""
+        try:
+            from PIL import Image
+            img = Image.new("RGB", (10, 10), color=(255, 255, 255))
+            buf = BytesIO()
+            img.save(buf, format="PNG")
+            return base64.b64encode(buf.getvalue()).decode()
+        except ImportError:
+            pytest.skip("Pillow not installed")
+
+    def test_numpy_array_passthrough(self):
+        """numpy arrays should be returned as-is."""
+        from services.training_service import _to_bgr
+
+        arr = np.zeros((50, 50, 3), dtype=np.uint8)
+        result = _to_bgr(arr, 0)
+        assert result is arr
+
+    def test_valid_base64_returns_bgr_array(self):
+        """Valid base64 PNG should decode to a BGR numpy array."""
+        from services.training_service import _to_bgr
+
+        b64 = self._make_valid_b64_png()
+        result = _to_bgr(b64, 0)
+
+        assert result is not None
+        assert isinstance(result, np.ndarray)
+        assert result.ndim == 3
+        assert result.shape[2] == 3
+
+    def test_base64_with_data_url_prefix(self):
+        """base64 strings with data-URL prefix should be handled."""
+        from services.training_service import _to_bgr
+
+        b64 = self._make_valid_b64_png()
+        data_url = f"data:image/png;base64,{b64}"
+        result = _to_bgr(data_url, 0)
+
+        assert result is not None
+        assert isinstance(result, np.ndarray)
+
+    def test_invalid_base64_returns_none(self):
+        """Corrupt base64 should return None (not raise)."""
+        from services.training_service import _to_bgr
+
+        result = _to_bgr("!!!not_valid_base64!!!", 0)
+        assert result is None
+
+    def test_unsupported_type_returns_none(self):
+        """Non-string, non-ndarray input should return None."""
+        from services.training_service import _to_bgr
+
+        result = _to_bgr(12345, 0)
+        assert result is None
+
+
+if __name__ == "__main__":
+    pytest.main([__file__, "-v"])

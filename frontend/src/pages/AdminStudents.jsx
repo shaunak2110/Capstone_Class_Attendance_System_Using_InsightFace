@@ -1,13 +1,14 @@
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ArrowLeft } from 'lucide-react';
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { ArrowLeft, Trash2, Search } from 'lucide-react';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { enrollStudent } from "@/services/api";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { enrollStudent, getAllStudents, unenrollStudent } from "@/services/api";
 
-const REQUIRED_IMAGES = 25;
+const REQUIRED_IMAGES = 1; // minimum images required for enrollment
 
 function fileToBase64(file) {
   return new Promise((resolve, reject) => {
@@ -33,6 +34,39 @@ export default function AdminStudents() {
   const [success, setSuccess] = useState(null);
   const fileInputRef = useRef(null);
 
+  // Unenroll state
+  const [students, setStudents] = useState([]);
+  const [studentsLoading, setStudentsLoading] = useState(true);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [unenrollError, setUnenrollError] = useState('');
+  const [unenrollSuccess, setUnenrollSuccess] = useState('');
+
+  useEffect(() => {
+    getAllStudents()
+      .then(setStudents)
+      .catch(() => {})
+      .finally(() => setStudentsLoading(false));
+  }, []);
+
+  const handleUnenroll = async (studentPrn, studentName) => {
+    if (!window.confirm(`Permanently unenroll "${studentName}" (PRN: ${studentPrn})?\n\nThis will delete:\n• All face embeddings\n• All attendance records\n• The student record\n\nThis cannot be undone.`)) return;
+    try {
+      const result = await unenrollStudent(studentPrn);
+      setUnenrollSuccess(result.message);
+      setUnenrollError('');
+      setStudents(prev => prev.filter(s => s.prn !== studentPrn));
+    } catch (err) {
+      setUnenrollError(err?.response?.data?.detail || 'Failed to unenroll student.');
+      setUnenrollSuccess('');
+    }
+  };
+
+  const filteredStudents = students.filter(s =>
+    s.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    s.prn.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    (s.panel || '').toLowerCase().includes(searchQuery.toLowerCase())
+  );
+
   const handleFileChange = (e) => {
     setImages(Array.from(e.target.files));
     setError('');
@@ -44,8 +78,8 @@ export default function AdminStudents() {
     setError('');
     setSuccess(null);
 
-    if (images.length !== REQUIRED_IMAGES) {
-      setError(`Exactly ${REQUIRED_IMAGES} images are required. You selected ${images.length}.`);
+    if (images.length < REQUIRED_IMAGES) {
+      setError(`At least ${REQUIRED_IMAGES} image is required. You selected ${images.length}.`);
       return;
     }
 
@@ -185,8 +219,8 @@ export default function AdminStudents() {
               <div className="space-y-1.5">
                 <Label htmlFor="images" className="text-slate-700 dark:text-slate-300 text-xs uppercase tracking-wider">
                   Student Images{' '}
-                  <span className={`text-xs font-normal ${images.length === REQUIRED_IMAGES ? 'text-teal-400' : 'text-slate-500'}`}>
-                    ({images.length}/{REQUIRED_IMAGES} selected)
+                  <span className={`text-xs font-normal ${images.length >= REQUIRED_IMAGES ? 'text-teal-400' : 'text-slate-500'}`}>
+                    ({images.length} selected — min {REQUIRED_IMAGES})
                   </span>
                 </Label>
                 <Input
@@ -200,7 +234,7 @@ export default function AdminStudents() {
                   disabled={loading}
                   className="bg-white dark:bg-black/20 border-slate-300 dark:border-white/10 text-slate-700 dark:text-slate-300 focus-visible:ring-purple-500 h-10 file:text-white file:bg-white/10 file:border-0 hover:file:bg-white/20 file:mr-4 file:h-full cursor-pointer"
                 />
-                <p className="text-xs text-slate-500 pt-1">Select exactly {REQUIRED_IMAGES} images.</p>
+                <p className="text-xs text-slate-500 pt-1">Select at least {REQUIRED_IMAGES} image. More images improve recognition accuracy.</p>
               </div>
 
               <Button
@@ -222,6 +256,84 @@ export default function AdminStudents() {
             </form>
           </CardContent>
         </Card>
+
+        {/* ── Unenroll Student Panel ─────────────────────────────────────── */}
+        <Card className="bg-white dark:bg-white/5 border-slate-300 dark:border-white/10 backdrop-blur-xl shadow-xl relative overflow-hidden transition-all duration-300">
+          <div className="absolute top-0 right-0 w-32 h-32 bg-red-500/10 rounded-full blur-[50px] pointer-events-none" />
+          <CardHeader className="border-b border-slate-200 dark:border-white/5 pb-4">
+            <CardTitle className="text-slate-900 dark:text-white flex items-center gap-3">
+              <div className="bg-red-500/20 text-red-400 p-2.5 rounded-lg border border-red-500/20 shadow-[0_0_15px_rgba(239,68,68,0.15)]">
+                <Trash2 className="h-5 w-5" />
+              </div>
+              Unenroll Student
+            </CardTitle>
+            <CardDescription className="text-slate-600 dark:text-slate-400 pt-1">
+              Permanently remove a student, their face embeddings, and all attendance records.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="pt-6">
+            {unenrollError && (
+              <div className="mb-4 p-3 bg-red-500/10 border border-red-500/20 rounded-lg text-red-400 text-sm">{unenrollError}</div>
+            )}
+            {unenrollSuccess && (
+              <div className="mb-4 p-3 bg-emerald-500/10 border border-emerald-500/20 rounded-lg text-emerald-400 text-sm">{unenrollSuccess}</div>
+            )}
+
+            {/* Search */}
+            <div className="relative mb-4">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+              <Input
+                placeholder="Search by name, PRN, or panel..."
+                value={searchQuery}
+                onChange={e => setSearchQuery(e.target.value)}
+                className="pl-9 bg-white dark:bg-black/20 border-slate-300 dark:border-white/10 text-slate-900 dark:text-white focus-visible:ring-red-500 h-10"
+              />
+            </div>
+
+            {studentsLoading ? (
+              <div className="flex justify-center items-center h-24">
+                <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-red-500"></div>
+              </div>
+            ) : filteredStudents.length === 0 ? (
+              <p className="text-center text-slate-500 py-8">
+                {searchQuery ? 'No students match your search.' : 'No students enrolled yet.'}
+              </p>
+            ) : (
+              <div className="rounded-md border border-slate-300 dark:border-white/10 overflow-hidden max-h-[400px] overflow-y-auto">
+                <Table>
+                  <TableHeader className="bg-white dark:bg-black/20 border-b border-slate-300 dark:border-white/10 sticky top-0">
+                    <TableRow className="hover:bg-transparent">
+                      <TableHead className="font-semibold text-slate-700 dark:text-slate-300">Name</TableHead>
+                      <TableHead className="font-semibold text-slate-700 dark:text-slate-300">PRN</TableHead>
+                      <TableHead className="font-semibold text-slate-700 dark:text-slate-300">Panel / Year</TableHead>
+                      <TableHead className="text-right font-semibold text-slate-700 dark:text-slate-300">Action</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {filteredStudents.map(s => (
+                      <TableRow key={s.prn} className="border-b border-slate-200 dark:border-white/5 hover:bg-slate-100 dark:hover:bg-white/5 transition-colors">
+                        <TableCell className="font-medium text-slate-800 dark:text-slate-200">{s.name}</TableCell>
+                        <TableCell className="font-mono text-sm text-slate-600 dark:text-slate-400">{s.prn}</TableCell>
+                        <TableCell className="text-slate-700 dark:text-slate-300">{s.panel} — {s.year}</TableCell>
+                        <TableCell className="text-right">
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => handleUnenroll(s.prn, s.name)}
+                            className="h-8 text-red-400 hover:text-red-300 hover:bg-red-500/10 gap-1"
+                          >
+                            <Trash2 className="h-3.5 w-3.5" /> Unenroll
+                          </Button>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
       </div>
     </div>
   );

@@ -5,25 +5,46 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { ShieldCheck, Calendar, Users, BookOpen, Plus, Clock } from 'lucide-react';
-import { createTeacher, scheduleLecture } from '@/services/api';
+import { Calendar, Users, BookOpen, Plus, Clock } from 'lucide-react';
+import { createTeacher, createSchedule } from '@/services/api';
+
+const DAYS = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
 
 export default function AdminDashboard() {
   const navigate = useNavigate();
   const userName = localStorage.getItem('username') || 'Admin';
 
+  // ── Create Teacher ──────────────────────────────────────────────────────────
   const [teacherForm, setTeacherForm] = useState({
     username: '', password: '', name: '', email_id: '', school: '', department: '', mob: ''
   });
   const [teacherStatus, setTeacherStatus] = useState({ loading: false, error: '', success: '' });
 
-  const [lectureForm, setLectureForm] = useState({
-    username: '', year: '', specialisation: '', lecorlab: 'lec', panel: '', lec_name: '', course_code: '', lecture_datetime: ''
+  // ── Create Schedule Template ────────────────────────────────────────────────
+  const [scheduleForm, setScheduleForm] = useState({
+    username: '', year: '', specialisation: '', lecorlab: 'lec', panel: '',
+    lec_name: '', course_code: '', days_of_week: ['Monday'], start_time: '',
+    sem_start_date: '', sem_end_date: ''
   });
-  const [lectureStatus, setLectureStatus] = useState({ loading: false, error: '', success: '' });
+  const [scheduleStatus, setScheduleStatus] = useState({ loading: false, error: '', success: '' });
 
-  const handleTeacherChange = (e) => setTeacherForm({ ...teacherForm, [e.target.name]: e.target.value });
-  const handleLectureChange = (e) => setLectureForm({ ...lectureForm, [e.target.name]: e.target.value });
+  const handleTeacherChange = (e) =>
+    setTeacherForm({ ...teacherForm, [e.target.name]: e.target.value });
+
+  const handleScheduleChange = (e) =>
+    setScheduleForm({ ...scheduleForm, [e.target.name]: e.target.value });
+
+  const toggleDay = (day) => {
+    setScheduleForm(prev => {
+      const days = prev.days_of_week || [];
+      return {
+        ...prev,
+        days_of_week: days.includes(day)
+          ? days.filter(d => d !== day)
+          : [...days, day]
+      };
+    });
+  };
 
   const handleCreateTeacher = async (e) => {
     e.preventDefault();
@@ -33,20 +54,39 @@ export default function AdminDashboard() {
       setTeacherStatus({ loading: false, error: '', success: `Teacher "${teacherForm.name}" created.` });
       setTeacherForm({ username: '', password: '', name: '', email_id: '', school: '', department: '', mob: '' });
     } catch (err) {
-      setTeacherStatus({ loading: false, error: err?.response?.data?.detail || 'Error creating teacher.', success: '' });
+      setTeacherStatus({
+        loading: false,
+        error: err?.response?.data?.detail || 'Error creating teacher.',
+        success: ''
+      });
     }
   };
 
-  const handleScheduleLecture = async (e) => {
+  const handleCreateSchedule = async (e) => {
     e.preventDefault();
-    setLectureStatus({ loading: true, error: '', success: '' });
+    if (!scheduleForm.days_of_week || scheduleForm.days_of_week.length === 0) {
+      setScheduleStatus({ loading: false, error: 'Select at least one day.', success: '' });
+      return;
+    }
+    setScheduleStatus({ loading: true, error: '', success: '' });
     try {
-      const payload = { ...lectureForm, lecture_datetime: new Date(lectureForm.lecture_datetime).toISOString() };
-      await scheduleLecture(payload);
-      setLectureStatus({ loading: false, error: '', success: `Lecture "${lectureForm.lec_name}" scheduled.` });
-      setLectureForm({ username: '', year: '', specialisation: '', lecorlab: 'lec', panel: '', lec_name: '', course_code: '', lecture_datetime: '' });
+      await createSchedule(scheduleForm);
+      setScheduleStatus({
+        loading: false,
+        error: '',
+        success: `Recurring schedule for "${scheduleForm.lec_name}" created on ${scheduleForm.days_of_week.join(', ')}.`
+      });
+      setScheduleForm({
+        username: '', year: '', specialisation: '', lecorlab: 'lec', panel: '',
+        lec_name: '', course_code: '', days_of_week: ['Monday'], start_time: '',
+        sem_start_date: '', sem_end_date: ''
+      });
     } catch (err) {
-      setLectureStatus({ loading: false, error: err?.response?.data?.detail || 'Error scheduling lecture.', success: '' });
+      setScheduleStatus({
+        loading: false,
+        error: err?.response?.data?.detail || 'Error creating schedule.',
+        success: ''
+      });
     }
   };
 
@@ -69,17 +109,24 @@ export default function AdminDashboard() {
             </p>
           </div>
           <div className="flex gap-3">
-            <Button onClick={() => navigate('/admin-records')} className="bg-white dark:bg-white/5 hover:bg-slate-200 dark:hover:bg-white/10 text-slate-900 dark:text-white border border-slate-300 dark:border-white/10 shadow-lg backdrop-blur-md transition-all duration-300">
+            <Button
+              onClick={() => navigate('/admin-records')}
+              className="bg-white dark:bg-white/5 hover:bg-slate-200 dark:hover:bg-white/10 text-slate-900 dark:text-white border border-slate-300 dark:border-white/10 shadow-lg backdrop-blur-md transition-all duration-300"
+            >
               <BookOpen className="mr-2 h-4 w-4 text-purple-400" /> Attendance Records
             </Button>
-            <Button onClick={() => navigate('/admin-students')} className="bg-purple-600 hover:bg-purple-500 text-slate-900 dark:text-white shadow-[0_0_15px_rgba(147,51,234,0.3)] border border-purple-500/50 transition-all duration-300">
+            <Button
+              onClick={() => navigate('/admin-students')}
+              className="bg-purple-600 hover:bg-purple-500 text-slate-900 dark:text-white shadow-[0_0_15px_rgba(147,51,234,0.3)] border border-purple-500/50 transition-all duration-300"
+            >
               <Users className="mr-2 h-4 w-4" /> Manage Students
             </Button>
           </div>
         </div>
 
         <div className="grid gap-8 lg:grid-cols-2 lg:items-start">
-          {/* Create Teacher Card */}
+
+          {/* ── Create Teacher Card ─────────────────────────────────────────── */}
           <Card className="bg-white dark:bg-white/5 border-slate-300 dark:border-white/10 backdrop-blur-xl shadow-xl relative overflow-hidden transition-all duration-300 hover:bg-slate-100 dark:hover:bg-white/[0.07]">
             <div className="absolute top-0 right-0 w-32 h-32 bg-teal-500/10 rounded-full blur-[50px] pointer-events-none" />
             <CardHeader className="border-b border-slate-200 dark:border-white/5 pb-4">
@@ -89,14 +136,23 @@ export default function AdminDashboard() {
                 </div>
                 Onboard Faculty
               </CardTitle>
-              <CardDescription className="text-slate-600 dark:text-slate-400 pt-1">Register a new educator profile in the system.</CardDescription>
+              <CardDescription className="text-slate-600 dark:text-slate-400 pt-1">
+                Register a new educator profile in the system.
+              </CardDescription>
             </CardHeader>
             <CardContent className="pt-6">
-              {teacherStatus.error && <Alert variant="destructive" className="mb-4 bg-red-500/10 border border-red-500/20 text-red-400"><AlertDescription>{teacherStatus.error}</AlertDescription></Alert>}
-              {teacherStatus.success && <Alert className="mb-4 bg-emerald-500/10 border border-emerald-500/20 text-emerald-400"><AlertDescription>{teacherStatus.success}</AlertDescription></Alert>}
+              {teacherStatus.error && (
+                <Alert variant="destructive" className="mb-4 bg-red-500/10 border border-red-500/20 text-red-400">
+                  <AlertDescription>{teacherStatus.error}</AlertDescription>
+                </Alert>
+              )}
+              {teacherStatus.success && (
+                <Alert className="mb-4 bg-emerald-500/10 border border-emerald-500/20 text-emerald-400">
+                  <AlertDescription>{teacherStatus.success}</AlertDescription>
+                </Alert>
+              )}
 
               <form onSubmit={handleCreateTeacher} className="space-y-4" autoComplete="off">
-                {/* Fake inputs to thwart browser autofill */}
                 <input type="text" name="fakeusernameremembered" style={{ display: 'none' }} />
                 <input type="password" name="fakepasswordremembered" style={{ display: 'none' }} />
 
@@ -145,14 +201,16 @@ export default function AdminDashboard() {
                   </div>
                 </div>
 
-                <Button type="submit" disabled={teacherStatus.loading} className="w-full bg-teal-600 hover:bg-teal-500 text-slate-900 dark:text-white mt-2 border border-teal-500/50 shadow-[0_0_15px_rgba(20,184,166,0.2)] transition-all duration-300 h-11">
-                  <Plus className="mr-2 h-4 w-4" /> {teacherStatus.loading ? 'Creating...' : 'Create Faculty Profile'}
+                <Button type="submit" disabled={teacherStatus.loading}
+                  className="w-full bg-teal-600 hover:bg-teal-500 text-slate-900 dark:text-white mt-2 border border-teal-500/50 shadow-[0_0_15px_rgba(20,184,166,0.2)] transition-all duration-300 h-11">
+                  <Plus className="mr-2 h-4 w-4" />
+                  {teacherStatus.loading ? 'Creating...' : 'Create Faculty Profile'}
                 </Button>
               </form>
             </CardContent>
           </Card>
 
-          {/* Schedule Lecture Card */}
+          {/* ── Schedule Template Builder Card ──────────────────────────────── */}
           <Card className="bg-white dark:bg-white/5 border-slate-300 dark:border-white/10 backdrop-blur-xl shadow-xl relative overflow-hidden transition-all duration-300 hover:bg-slate-100 dark:hover:bg-white/[0.07]">
             <div className="absolute top-0 right-0 w-32 h-32 bg-indigo-500/10 rounded-full blur-[50px] pointer-events-none" />
             <CardHeader className="border-b border-slate-200 dark:border-white/5 pb-4">
@@ -160,31 +218,41 @@ export default function AdminDashboard() {
                 <div className="bg-indigo-500/20 text-indigo-400 p-2.5 rounded-lg border border-indigo-500/20 shadow-[0_0_15px_rgba(99,102,241,0.15)]">
                   <Calendar className="h-5 w-5" />
                 </div>
-                Schedule Lecture Details
+                Schedule Lectures
               </CardTitle>
-              <CardDescription className="text-slate-600 dark:text-slate-400 pt-1">Allocate sessions and coordinate faculty schedules.</CardDescription>
+              <CardDescription className="text-slate-600 dark:text-slate-400 pt-1">
+                Create a recurring timetable entry for a faculty member. Lectures are auto-generated each day.
+              </CardDescription>
             </CardHeader>
             <CardContent className="pt-6">
-              {lectureStatus.error && <Alert variant="destructive" className="mb-4 bg-red-500/10 border border-red-500/20 text-red-400"><AlertDescription>{lectureStatus.error}</AlertDescription></Alert>}
-              {lectureStatus.success && <Alert className="mb-4 bg-emerald-500/10 border border-emerald-500/20 text-emerald-400"><AlertDescription>{lectureStatus.success}</AlertDescription></Alert>}
+              {scheduleStatus.error && (
+                <Alert variant="destructive" className="mb-4 bg-red-500/10 border border-red-500/20 text-red-400">
+                  <AlertDescription>{scheduleStatus.error}</AlertDescription>
+                </Alert>
+              )}
+              {scheduleStatus.success && (
+                <Alert className="mb-4 bg-emerald-500/10 border border-emerald-500/20 text-emerald-400">
+                  <AlertDescription>{scheduleStatus.success}</AlertDescription>
+                </Alert>
+              )}
 
-              <form onSubmit={handleScheduleLecture} className="space-y-4" autoComplete="off">
+              <form onSubmit={handleCreateSchedule} className="space-y-4" autoComplete="off">
 
                 <div className="space-y-1.5">
                   <Label className="text-slate-700 dark:text-slate-300 text-xs uppercase tracking-wider">Teacher Username</Label>
-                  <Input name="username" type="text" placeholder="faculty username" value={lectureForm.username} onChange={handleLectureChange} required autoComplete="new-password"
+                  <Input name="username" type="text" placeholder="faculty username" value={scheduleForm.username} onChange={handleScheduleChange} required autoComplete="new-password"
                     className="bg-white dark:bg-black/20 border-slate-300 dark:border-white/10 text-slate-900 dark:text-white focus-visible:ring-indigo-500 placeholder:text-slate-400 dark:placeholder:text-slate-600 h-10" />
                 </div>
 
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-1.5 col-span-2 sm:col-span-1">
-                    <Label className="text-slate-700 dark:text-slate-300 text-xs uppercase tracking-wider">Academic Year</Label>
-                    <Input name="year" type="text" placeholder="e.g. 1st Year" value={lectureForm.year} onChange={handleLectureChange} required autoComplete="new-password"
+                    <Label className="text-slate-700 dark:text-slate-300 text-xs uppercase tracking-wider">Lecture Name</Label>
+                    <Input name="lec_name" type="text" placeholder="Data Structures" value={scheduleForm.lec_name} onChange={handleScheduleChange} required autoComplete="new-password"
                       className="bg-white dark:bg-black/20 border-slate-300 dark:border-white/10 text-slate-900 dark:text-white focus-visible:ring-indigo-500 placeholder:text-slate-400 dark:placeholder:text-slate-600 h-10" />
                   </div>
                   <div className="space-y-1.5 col-span-2 sm:col-span-1">
-                    <Label className="text-slate-700 dark:text-slate-300 text-xs uppercase tracking-wider">Specialisation</Label>
-                    <Input name="specialisation" type="text" placeholder="e.g. CSE, AIDS" value={lectureForm.specialisation} onChange={handleLectureChange} required autoComplete="new-password"
+                    <Label className="text-slate-700 dark:text-slate-300 text-xs uppercase tracking-wider">Course Code</Label>
+                    <Input name="course_code" type="text" placeholder="CS201" value={scheduleForm.course_code} onChange={handleScheduleChange} required autoComplete="new-password"
                       className="bg-white dark:bg-black/20 border-slate-300 dark:border-white/10 text-slate-900 dark:text-white focus-visible:ring-indigo-500 placeholder:text-slate-400 dark:placeholder:text-slate-600 h-10" />
                   </div>
                 </div>
@@ -192,44 +260,87 @@ export default function AdminDashboard() {
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-1.5 col-span-2 sm:col-span-1">
                     <Label className="text-slate-700 dark:text-slate-300 text-xs uppercase tracking-wider">Session Type</Label>
-                    <select name="lecorlab" value={lectureForm.lecorlab} onChange={handleLectureChange} required
+                    <select name="lecorlab" value={scheduleForm.lecorlab} onChange={handleScheduleChange} required
                       className="w-full bg-white dark:bg-black/20 border border-slate-300 dark:border-white/10 text-slate-800 dark:text-slate-200 rounded-md focus:ring-1 focus:ring-indigo-500 outline-none h-10 px-3">
-                      <option value="lec" className="bg-slate-900">Lecture</option>
-                      <option value="lab" className="bg-slate-900">Lab</option>
+                      <option value="lec" className="bg-slate-900 text-white">Lecture</option>
+                      <option value="lab" className="bg-slate-900 text-white">Lab</option>
                     </select>
                   </div>
                   <div className="space-y-1.5 col-span-2 sm:col-span-1">
                     <Label className="text-slate-700 dark:text-slate-300 text-xs uppercase tracking-wider">Panel Group</Label>
-                    <Input name="panel" type="text" placeholder="e.g. H" value={lectureForm.panel} onChange={handleLectureChange} required autoComplete="new-password"
+                    <Input name="panel" type="text" placeholder="e.g. H" value={scheduleForm.panel} onChange={handleScheduleChange} required autoComplete="new-password"
                       className="bg-white dark:bg-black/20 border-slate-300 dark:border-white/10 text-slate-900 dark:text-white focus-visible:ring-indigo-500 placeholder:text-slate-400 dark:placeholder:text-slate-600 h-10" />
                   </div>
                 </div>
 
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-1.5 col-span-2 sm:col-span-1">
-                    <Label className="text-slate-700 dark:text-slate-300 text-xs uppercase tracking-wider">Lecture Name</Label>
-                    <Input name="lec_name" type="text" placeholder="Data Structures" value={lectureForm.lec_name} onChange={handleLectureChange} required autoComplete="new-password"
+                    <Label className="text-slate-700 dark:text-slate-300 text-xs uppercase tracking-wider">Academic Year</Label>
+                    <Input name="year" type="text" placeholder="e.g. FY" value={scheduleForm.year} onChange={handleScheduleChange} required autoComplete="new-password"
                       className="bg-white dark:bg-black/20 border-slate-300 dark:border-white/10 text-slate-900 dark:text-white focus-visible:ring-indigo-500 placeholder:text-slate-400 dark:placeholder:text-slate-600 h-10" />
                   </div>
                   <div className="space-y-1.5 col-span-2 sm:col-span-1">
-                    <Label className="text-slate-700 dark:text-slate-300 text-xs uppercase tracking-wider">Course Code</Label>
-                    <Input name="course_code" type="text" placeholder="CS201" value={lectureForm.course_code} onChange={handleLectureChange} required autoComplete="new-password"
+                    <Label className="text-slate-700 dark:text-slate-300 text-xs uppercase tracking-wider">Specialisation</Label>
+                    <Input name="specialisation" type="text" placeholder="e.g. CSE, AIDS" value={scheduleForm.specialisation} onChange={handleScheduleChange} required autoComplete="new-password"
                       className="bg-white dark:bg-black/20 border-slate-300 dark:border-white/10 text-slate-900 dark:text-white focus-visible:ring-indigo-500 placeholder:text-slate-400 dark:placeholder:text-slate-600 h-10" />
                   </div>
                 </div>
 
-                <div className="space-y-1.5">
-                  <Label className="text-slate-700 dark:text-slate-300 text-xs uppercase tracking-wider">Target Date & Time</Label>
-                  <Input name="lecture_datetime" type="datetime-local" value={lectureForm.lecture_datetime} onChange={handleLectureChange} required
-                    className="bg-white dark:bg-black/20 border-slate-300 dark:border-white/10 text-slate-900 dark:text-white focus-visible:ring-indigo-500 h-10 [color-scheme:dark]" />
+                {/* Timetable-specific fields */}
+                <div className="space-y-4 p-4 bg-indigo-500/5 rounded-xl border border-indigo-500/10">
+                  <div>
+                    <Label className="text-slate-700 dark:text-slate-300 text-xs uppercase tracking-wider font-bold mb-2 block">
+                      Days of Week
+                    </Label>
+                    <div className="flex flex-wrap gap-2">
+                      {DAYS.map(day => (
+                        <button
+                          key={day}
+                          type="button"
+                          onClick={() => toggleDay(day)}
+                          className={`px-4 py-2 rounded-lg text-sm font-semibold transition-all border ${
+                            scheduleForm.days_of_week?.includes(day)
+                              ? 'bg-indigo-600 border-indigo-500 text-white shadow-[0_0_10px_rgba(99,102,241,0.3)]'
+                              : 'bg-white dark:bg-black/20 border-slate-300 dark:border-white/10 text-slate-600 dark:text-slate-400 hover:border-indigo-400'
+                          }`}
+                        >
+                          {day.substring(0, 3)}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-1.5 col-span-2 sm:col-span-1">
+                      <Label className="text-slate-700 dark:text-slate-300 text-xs uppercase tracking-wider font-bold">Start Time</Label>
+                      <Input name="start_time" type="time" value={scheduleForm.start_time} onChange={handleScheduleChange} required
+                        className="bg-white dark:bg-black/20 border-slate-300 dark:border-white/10 text-slate-900 dark:text-white focus-visible:ring-indigo-500 h-10 [color-scheme:dark]" />
+                    </div>
+                    <div className="space-y-1.5 col-span-2 sm:col-span-1">
+                      {/* spacer */}
+                    </div>
+                    <div className="space-y-1.5 col-span-2 sm:col-span-1">
+                      <Label className="text-slate-700 dark:text-slate-300 text-xs uppercase tracking-wider">Semester Start</Label>
+                      <Input name="sem_start_date" type="date" value={scheduleForm.sem_start_date} onChange={handleScheduleChange} required
+                        className="bg-white dark:bg-black/20 border-slate-300 dark:border-white/10 text-slate-900 dark:text-white focus-visible:ring-indigo-500 h-10 [color-scheme:dark]" />
+                    </div>
+                    <div className="space-y-1.5 col-span-2 sm:col-span-1">
+                      <Label className="text-slate-700 dark:text-slate-300 text-xs uppercase tracking-wider">Semester End</Label>
+                      <Input name="sem_end_date" type="date" value={scheduleForm.sem_end_date} onChange={handleScheduleChange} required
+                        className="bg-white dark:bg-black/20 border-slate-300 dark:border-white/10 text-slate-900 dark:text-white focus-visible:ring-indigo-500 h-10 [color-scheme:dark]" />
+                    </div>
+                  </div>
                 </div>
 
-                <Button type="submit" disabled={lectureStatus.loading} className="w-full bg-indigo-600 hover:bg-indigo-500 text-slate-900 dark:text-white mt-2 border border-indigo-500/50 shadow-[0_0_15px_rgba(99,102,241,0.2)] transition-all duration-300 h-11">
-                  <Clock className="mr-2 h-4 w-4" /> {lectureStatus.loading ? 'Scheduling...' : 'Reserve Timeslot'}
+                <Button type="submit" disabled={scheduleStatus.loading}
+                  className="w-full bg-indigo-600 hover:bg-indigo-500 text-slate-900 dark:text-white mt-2 border border-indigo-500/50 shadow-[0_0_15px_rgba(99,102,241,0.2)] transition-all duration-300 h-11">
+                  <Clock className="mr-2 h-4 w-4" />
+                  {scheduleStatus.loading ? 'Saving...' : 'Save Schedule Template'}
                 </Button>
               </form>
             </CardContent>
           </Card>
+
         </div>
       </div>
     </div>

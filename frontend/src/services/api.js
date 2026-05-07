@@ -1,7 +1,12 @@
 import axios from 'axios';
 
+// In development the Vite proxy forwards /auth, /admin, /user, /superadmin to
+// http://127.0.0.1:8000, so we use a relative base URL.
+// In production (or when running without the proxy) set VITE_API_URL in .env.
+const BASE_URL = import.meta.env.VITE_API_URL || '';
+
 const api = axios.create({
-  baseURL: 'http://127.0.0.1:8000',
+  baseURL: BASE_URL,
   headers: { 'Content-Type': 'application/json' },
 });
 
@@ -71,6 +76,29 @@ export async function getUsers() {
   return response.data;
 }
 
+export async function revokeUser(userId) {
+  /** DELETE /superadmin/revoke-user/{user_id} — demote user to privilege 3 (teacher) */
+  const response = await api.delete(`/superadmin/revoke-user/${userId}`);
+  return response.data;
+}
+
+export async function getAllStudents() {
+  /** GET /admin/students — all enrolled students. Accessible to all logged-in users. */
+  try {
+    const response = await api.get('/admin/students');
+    return response.data || [];
+  } catch (err) {
+    console.error('getAllStudents failed:', err?.response?.data?.detail || err.message);
+    return [];
+  }
+}
+
+export async function unenrollStudent(prn) {
+  /** DELETE /admin/unenroll-student/{prn} — remove student, embeddings, attendance records */
+  const response = await api.delete(`/admin/unenroll-student/${prn}`);
+  return response.data;
+}
+
 export async function createAdmin(data) {
   const response = await api.post('/superadmin/create-admin', data);
   return response.data;
@@ -96,6 +124,65 @@ export async function createTeacher(data) {
 export async function scheduleLecture(data) {
   const response = await api.post('/admin/schedule-lecture', data);
   return response.data;
+}
+
+// ─── Timetable / Schedule Template API ───────────────────────────────────────
+
+export async function createSchedule(data) {
+  /**
+   * POST /admin/create-schedule
+   * data: { username, lec_name, course_code, lecorlab, year, specialisation,
+   *         panel, days_of_week[], start_time, sem_start_date, sem_end_date }
+   */
+  const response = await api.post('/admin/create-schedule', data);
+  return response.data;
+}
+
+export async function getSchedules() {
+  /** GET /admin/schedules — all active schedule templates (admin view) */
+  try {
+    const response = await api.get('/admin/schedules');
+    return response.data;
+  } catch (err) {
+    if (err?.response?.status === 404) return [];
+    throw err;
+  }
+}
+
+export async function deleteSchedule(scheduleId) {
+  /** DELETE /admin/schedule/{id} — soft-deactivate a schedule template */
+  const response = await api.delete(`/admin/schedule/${scheduleId}`);
+  return response.data;
+}
+
+export async function getTodayLectures() {
+  /**
+   * GET /user/today-lectures/{user_id}
+   * Returns only today's lectures for the logged-in teacher.
+   */
+  const userId = localStorage.getItem('user_id');
+  try {
+    const response = await api.get(`/user/today-lectures/${userId}`);
+    return response.data;
+  } catch (err) {
+    if (err?.response?.status === 404) return [];
+    throw err;
+  }
+}
+
+export async function getUserSchedules() {
+  /**
+   * GET /user/schedules/{user_id}
+   * Returns the logged-in teacher's recurring schedule templates.
+   */
+  const userId = localStorage.getItem('user_id');
+  try {
+    const response = await api.get(`/user/schedules/${userId}`);
+    return response.data;
+  } catch (err) {
+    if (err?.response?.status === 404) return [];
+    throw err;
+  }
 }
 
 export async function getPrivilegeRequests() {

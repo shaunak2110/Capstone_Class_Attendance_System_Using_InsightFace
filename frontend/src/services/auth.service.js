@@ -1,32 +1,18 @@
-import api from './api';
+import { loginUser } from './api';
 
-const USE_MOCK = import.meta.env.VITE_USE_MOCK_DATA === 'true';
-
+// Thin wrapper kept for backward compatibility.
+// All real auth goes through api.js → loginUser().
 export const authService = {
-  login: async (email, password) => {
-    if (USE_MOCK) {
-      // --- MOCK MODE (For Demo) ---
-      return new Promise((resolve, reject) => {
-        setTimeout(() => {
-          if (email && password) {
-            resolve({ 
-              token: 'mock-token-123', 
-              user: { email, name: 'Faculty', role: 'admin' } 
-            });
-          } else {
-            reject(new Error('Invalid credentials'));
-          }
-        }, 800);
-      });
-    } else {
-      // --- REAL API MODE (For Deployment) ---
-      const response = await api.post('/api/login', { email, password });
-      return response.data;
-    }
+  login: async (username, password) => {
+    return loginUser(username, password);
   },
 
   logout: () => {
+    localStorage.removeItem('user_id');
+    localStorage.removeItem('username');
+    localStorage.removeItem('privilege_level');
+    localStorage.removeItem('role');
+    localStorage.removeItem('name');
     localStorage.removeItem('token');
-    localStorage.removeItem('user');
   },
 };

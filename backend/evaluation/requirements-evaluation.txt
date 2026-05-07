@@ -1,0 +1,47 @@
+# ============================================================
+# Face Recognition Evaluation Pipeline — Dependencies
+# ============================================================
+# Install in a dedicated virtual environment to keep this
+# pipeline isolated from the production backend:
+#
+#   python -m venv .venv-eval
+#   .venv-eval\Scripts\activate          # Windows
+#   source .venv-eval/bin/activate       # Linux / macOS
+#   pip install -r requirements-evaluation.txt
+#
+# Versions are pinned to major.minor to avoid breaking changes
+# while allowing patch-level security updates.
+# These versions are aligned with the production backend to
+# prevent conflicts if both environments share a Python install.
+# ============================================================
+
+# --- Core scientific stack ---
+numpy>=2.4,<3.0
+opencv-python>=4.8,<5.0          # cv2 — detection, preprocessing, LBPH
+pandas>=2.3,<3.0                  # CSV I/O, metrics aggregation
+scikit-learn>=1.8,<2.0            # confusion matrix, t-SNE/PCA, metrics helpers
+scipy>=1.16,<2.0                  # statistical utilities
+
+# --- Deep learning / face recognition ---
+insightface>=0.7,<1.0             # InsightFace buffalo_l detector + ArcFace recognizer
+onnxruntime>=1.24,<2.0            # ONNX inference backend (CPU); swap for onnxruntime-gpu if needed
+
+# --- Face detection ---
+retina-face>=0.0.17               # RetinaFace detector (pure Python)
+# ultralytics>=8.0,<9.0           # YOLO detector — uncomment if YOLO model file is present
+
+# --- Face recognition (dlib backend) ---
+face-recognition>=1.3,<2.0        # 128-dim dlib embeddings
+# dlib is a transitive dependency of face-recognition; install separately if needed:
+# dlib>=19.24,<20.0
+
+# --- Configuration ---
+PyYAML>=6.0,<7.0                  # YAML config loader
+
+# --- Visualisation ---
+matplotlib>=3.10,<4.0             # charts and plots
+seaborn>=0.13,<1.0                # styled statistical charts
+
+# --- Testing ---
+pytest>=9.0,<10.0                 # test runner
+hypothesis>=6.151,<7.0            # property-based testing

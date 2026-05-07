@@ -7,16 +7,17 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { UploadCloud, Activity, Users, BookOpen, Camera, X, FileText, ChevronDown, Download, CheckCircle, XCircle } from 'lucide-react';
-import { getLectures, markAttendance, getAttendanceRecords } from '@/services/api';
+import { getLectures, markAttendance, getAttendanceRecords, getTodayLectures } from '@/services/api';
 
 export default function Dashboard() {
   const navigate = useNavigate();
   const fileInputRef = useRef(null);
 
   const [lectures, setLectures] = useState([]);
+  const [todayLectures, setTodayLectures] = useState([]);
   const [lecturesLoading, setLecturesLoading] = useState(true);
   const [selectedLecId, setSelectedLecId] = useState('');
-  const [manualDatetime, setManualDatetime] = useState('');
+  const [activeTab, setActiveTab] = useState('today');
   const [selectedFiles, setSelectedFiles] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -39,10 +40,46 @@ export default function Dashboard() {
   const userName = localStorage.getItem('username') || 'User';
 
   useEffect(() => {
-    getLectures()
-      .then(setLectures)
-      .catch(() => setError('Failed to load lectures.'))
-      .finally(() => setLecturesLoading(false));
+    Promise.all([
+      getLectures().catch(() => []),
+      getTodayLectures().catch(() => [])
+    ]).then(([allLecs, todayLecs]) => {
+      setLectures(allLecs || []);
+      setTodayLectures(todayLecs || []);
+
+      // Auto-select the pending lecture closest to the current time
+      if (todayLecs && todayLecs.length > 0) {
+        const now = new Date();
+        let closestLec = null;
+        let smallestDiff = Infinity;
+
+        todayLecs.forEach(lec => {
+          if (lec.attendance_status === 'Y') return; // skip completed
+          const lecTime = new Date(lec.lecture_datetime);
+          const durationHrs = lec.lecorlab === 'lab' ? 2 : 1;
+          const lecEndTime = new Date(lecTime.getTime() + durationHrs * 60 * 60 * 1000);
+          const diff = Math.abs(now - lecEndTime);
+          if (diff < smallestDiff) {
+            smallestDiff = diff;
+            closestLec = lec;
+          }
+        });
+
+        // Fallback to first PENDING lecture, or nothing if all completed
+        if (!closestLec) {
+          const firstPending = todayLecs.find(l => l.attendance_status !== 'Y');
+          if (firstPending) closestLec = firstPending;
+          // If all completed, don't auto-select anything
+        }
+        if (closestLec) setSelectedLecId(String(closestLec.lec_id));
+      }
+    }).catch(() => {
+      setError('Failed to load lectures.');
+      setLectures([]);
+      setTodayLectures([]);
+    }).finally(() => {
+      setLecturesLoading(false);
+    });
   }, []);
 
   const startCamera = async () => {
@@ -110,15 +147,22 @@ export default function Dashboard() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!selectedLecId) { setError('Please select a lecture.'); return; }
+    if (!selectedLecId) { setError('Please select a lecture first.'); return; }
     if (selectedFiles.length === 0) { setError('Please select at least one image.'); return; }
+
+    // Check if selected lecture is already finalized
+    const allLecs = [...todayLectures, ...pastPendingLectures];
+    const selectedLec = allLecs.find(l => String(l.lec_id) === String(selectedLecId));
+    if (selectedLec && selectedLec.attendance_status === 'Y') {
+      setError('This lecture has already been finalized. Select a different lecture.');
+      return;
+    }
 
     setLoading(true);
     setError('');
     try {
       const base64Images = await Promise.all(selectedFiles.map(toBase64));
-      const isoDatetime = manualDatetime ? new Date(manualDatetime).toISOString() : null;
-      const result = await markAttendance(parseInt(selectedLecId), base64Images, isoDatetime);
+      const result = await markAttendance(parseInt(selectedLecId), base64Images, null);
       navigate('/results', {
         state: {
           lecId: parseInt(selectedLecId),
@@ -180,6 +224,12 @@ export default function Dashboard() {
     link.parentNode.removeChild(link);
   };
 
+  // Lectures that are not today and still pending — shown in "Past Pending" tab
+  const pastPendingLectures = lectures.filter(lec =>
+    lec.attendance_status !== 'Y' &&
+    !todayLectures.some(tLec => tLec.lec_id === lec.lec_id)
+  );
+
   return (
     <div className="relative min-h-[calc(100vh-2rem)] bg-slate-50 dark:bg-[#0f1117] text-slate-800 dark:text-slate-200 p-4 sm:p-8 rounded-xl overflow-hidden font-sans shadow-2xl selection:bg-blue-500/30">
       {/* Background Effects */}
@@ -230,50 +280,102 @@ export default function Dashboard() {
                 <div className="flex justify-center items-center h-40">
                   <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500"></div>
                 </div>
-              ) : lectures.length === 0 ? (
+              ) : todayLectures.length === 0 && pastPendingLectures.length === 0 ? (
                 <div className="flex flex-col items-center justify-center p-8 text-slate-500 text-center">
                   <BookOpen className="h-10 w-10 mb-3 opacity-20" />
-                  <p>No lectures scheduled.</p>
+                  <p>No pending classes to mark.</p>
                 </div>
               ) : (
                 <div className="space-y-6">
-                  <div className="space-y-2">
-                    <Label className="text-slate-700 dark:text-slate-300 text-xs uppercase tracking-wider">Select Lecture</Label>
-                    <Select value={selectedLecId} onValueChange={(val) => {
-                      setSelectedLecId(val);
-                      const dt = new Date();
-                      const tzOffset = dt.getTimezoneOffset() * 60000;
-                      const localISOTime = (new Date(dt - tzOffset)).toISOString().slice(0, 16);
-                      setManualDatetime(localISOTime);
-                    }}>
-                      <SelectTrigger className="bg-white dark:bg-black/20 border-slate-300 dark:border-white/10 text-slate-900 dark:text-white focus:ring-blue-500 h-12">
-                        <SelectValue placeholder="Choose a lecture..." />
-                      </SelectTrigger>
-                      <SelectContent className="bg-slate-900 border-slate-300 dark:border-white/10 text-slate-900 dark:text-white">
-                        {lectures.map((lec) => (
-                          <SelectItem
-                            key={lec.lec_id}
-                            value={String(lec.lec_id)}
-                            className="cursor-pointer hover:bg-slate-200 dark:hover:bg-white/10 focus:bg-white/10"
-                          >
-                            {lec.lec_name} — {lec.year} ({lec.specialisation}) — {lec.panel}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
+                  {/* Today / Past-Pending tabs */}
+                  <div className="flex bg-slate-200 dark:bg-black/40 p-1 rounded-lg">
+                    <button
+                      onClick={() => {
+                        setActiveTab('today');
+                        const first = todayLectures.find(l => l.attendance_status !== 'Y') || todayLectures[0];
+                        if (first) setSelectedLecId(String(first.lec_id));
+                      }}
+                      className={`flex-1 text-xs font-bold uppercase tracking-wider py-2 rounded-md transition-all ${
+                        activeTab === 'today'
+                          ? 'bg-blue-500 text-white shadow'
+                          : 'text-slate-500 hover:text-slate-700 dark:hover:text-slate-300'
+                      }`}
+                    >
+                      Today's Classes
+                    </button>
+                    <button
+                      onClick={() => {
+                        setActiveTab('past');
+                        if (pastPendingLectures[0]) setSelectedLecId(String(pastPendingLectures[0].lec_id));
+                      }}
+                      className={`flex-1 text-xs font-bold uppercase tracking-wider py-2 rounded-md transition-all ${
+                        activeTab === 'past'
+                          ? 'bg-amber-500 text-white shadow'
+                          : 'text-slate-500 hover:text-slate-700 dark:hover:text-slate-300'
+                      }`}
+                    >
+                      Past Pending
+                    </button>
                   </div>
 
-                  {selectedLecId && (
-                    <div className="space-y-2 animate-in fade-in duration-300 slide-in-from-top-4">
-                      <Label className="text-slate-700 dark:text-slate-300 text-xs uppercase tracking-wider">Date & Time override</Label>
-                      <Input
-                        type="datetime-local"
-                        value={manualDatetime}
-                        onChange={(e) => setManualDatetime(e.target.value)}
-                        className="bg-white dark:bg-black/20 border-slate-300 dark:border-white/10 text-slate-900 dark:text-white focus-visible:ring-blue-500 h-11 [color-scheme:dark]"
-                      />
-                    </div>
-                  )}
+                  <div className="space-y-2">
+                    <Label className="text-slate-700 dark:text-slate-300 text-xs uppercase tracking-wider">Select Lecture</Label>
+
+                    {activeTab === 'today' && todayLectures.length === 0 ? (
+                      <div className="bg-slate-100 dark:bg-white/5 border border-slate-300 dark:border-white/10 rounded-lg p-6 text-center text-slate-500 flex flex-col items-center justify-center min-h-[120px]">
+                        <BookOpen className="h-6 w-6 mb-2 opacity-30" />
+                        No classes scheduled for today.
+                      </div>
+                    ) : activeTab === 'past' && pastPendingLectures.length === 0 ? (
+                      <div className="bg-slate-100 dark:bg-white/5 border border-slate-300 dark:border-white/10 rounded-lg p-6 text-center text-slate-500 flex flex-col items-center justify-center min-h-[120px]">
+                        <CheckCircle className="h-6 w-6 mb-2 text-emerald-500 opacity-60" />
+                        No past pending classes. You're all caught up!
+                      </div>
+                    ) : (
+                      <Select value={selectedLecId} onValueChange={setSelectedLecId}>
+                        <SelectTrigger className="bg-white dark:bg-black/20 border-slate-300 dark:border-white/10 text-slate-900 dark:text-white focus:ring-blue-500 h-12">
+                          <SelectValue placeholder="Choose a lecture..." />
+                        </SelectTrigger>
+                        <SelectContent className="bg-slate-900 border-slate-300 dark:border-white/10 text-slate-900 dark:text-white">
+                          {activeTab === 'today' ? (
+                            todayLectures.map((lec) => {
+                              const timeStr = new Date(lec.lecture_datetime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+                              const done = lec.attendance_status === 'Y';
+                              return (
+                                <SelectItem
+                                  key={`today-${lec.lec_id}`}
+                                  value={String(lec.lec_id)}
+                                  disabled={done}
+                                  className={`cursor-pointer font-semibold ${done ? 'opacity-40 cursor-not-allowed' : 'hover:bg-slate-200 dark:hover:bg-white/10 focus:bg-white/10'}`}
+                                >
+                                  <span className={done ? 'text-slate-500 mr-2' : 'text-emerald-400 mr-2'}>[{timeStr}]</span>
+                                  <span className={done ? 'line-through text-slate-500' : ''}>
+                                    {lec.lec_name} — {lec.year} ({lec.specialisation}) — Panel {lec.panel}
+                                  </span>
+                                  {done && <span className="ml-2 text-emerald-500 text-xs font-bold uppercase">✓ Done</span>}
+                                </SelectItem>
+                              );
+                            })
+                          ) : (
+                            pastPendingLectures.map((lec) => {
+                              const timeStr = new Date(lec.lecture_datetime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+                              const dateStr = new Date(lec.lecture_datetime).toLocaleDateString([], { month: 'short', day: 'numeric' });
+                              return (
+                                <SelectItem
+                                  key={`past-${lec.lec_id}`}
+                                  value={String(lec.lec_id)}
+                                  className="cursor-pointer hover:bg-slate-200 dark:hover:bg-white/10 focus:bg-white/10 font-semibold"
+                                >
+                                  <span className="text-amber-400 mr-2">[{dateStr} {timeStr}]</span>
+                                  {lec.lec_name} — {lec.year} ({lec.specialisation}) — Panel {lec.panel}
+                                </SelectItem>
+                              );
+                            })
+                          )}
+                        </SelectContent>
+                      </Select>
+                    )}
+                  </div>
                 </div>
               )}
             </CardContent>
@@ -337,21 +439,36 @@ export default function Dashboard() {
               )}
 
               <form onSubmit={handleSubmit} className="mt-auto">
-                <Button
-                  type="submit"
-                  className="w-full bg-blue-600 hover:bg-blue-500 text-slate-900 dark:text-white h-12 shadow-[0_0_20px_rgba(37,99,235,0.3)] border border-blue-500/50 transition-all duration-300 font-medium text-lg"
-                  disabled={loading || lecturesLoading || selectedFiles.length === 0}
-                >
-                  {loading ? (
-                    <>
-                      <Activity className="mr-2 h-5 w-5 animate-spin" /> Processing AI Recognition...
-                    </>
-                  ) : (
-                    <>
-                      <Activity className="mr-2 h-5 w-5" /> Process Attendance ({selectedFiles.length} photos)
-                    </>
-                  )}
-                </Button>
+                {(() => {
+                  const allLecs = [...todayLectures, ...pastPendingLectures];
+                  const selLec = allLecs.find(l => String(l.lec_id) === String(selectedLecId));
+                  const isFinalized = selLec?.attendance_status === 'Y';
+                  const noLec = !selectedLecId;
+                  const btnDisabled = loading || lecturesLoading || selectedFiles.length === 0 || noLec || isFinalized;
+                  return (
+                    <Button
+                      type="submit"
+                      className={`w-full h-12 border transition-all duration-300 font-medium text-lg ${
+                        isFinalized
+                          ? 'bg-slate-400 dark:bg-slate-600 border-slate-400 text-slate-200 cursor-not-allowed opacity-60'
+                          : noLec
+                          ? 'bg-slate-400 dark:bg-slate-600 border-slate-400 text-slate-200 cursor-not-allowed opacity-60'
+                          : 'bg-blue-600 hover:bg-blue-500 text-slate-900 dark:text-white shadow-[0_0_20px_rgba(37,99,235,0.3)] border-blue-500/50'
+                      }`}
+                      disabled={btnDisabled}
+                    >
+                      {loading ? (
+                        <><Activity className="mr-2 h-5 w-5 animate-spin" /> Processing AI Recognition...</>
+                      ) : isFinalized ? (
+                        <><Activity className="mr-2 h-5 w-5 opacity-50" /> Lecture Already Finalized</>
+                      ) : noLec ? (
+                        <><Activity className="mr-2 h-5 w-5 opacity-50" /> Select a Lecture First</>
+                      ) : (
+                        <><Activity className="mr-2 h-5 w-5" /> Process Attendance ({selectedFiles.length} photos)</>
+                      )}
+                    </Button>
+                  );
+                })()}
               </form>
             </CardContent>
           </Card>

@@ -1,0 +1,96 @@
+﻿Classroom Attendance System — Project Structure
+================================================
+Generated: 2026-05-04
+
+C:\CapstoneVer3\
+|
++-- README.md                        # Complete technical documentation
++-- CREDENTIALS.md                   # All login credentials + fresh-start guide
++-- Full Database Query.sql          # Canonical DB schema (run first)
++-- timetable_setup.sql              # Timetable migration (run second)
++-- usernamepsswd.sql                # Superadmin seed data (run third)
++-- structure.txt                    # This file
+|
++-- backend/
+|   |
+|   +-- main.py                      # FastAPI app entry point, CORS, error handlers
+|   +-- auth.py                      # POST /auth/login — bcrypt authentication
+|   +-- admin.py                     # Admin endpoints (teacher, lecture, student, timetable, analytics)
+|   +-- user.py                      # Teacher endpoints (attendance, profile, CSV, timetable)
+|   +-- superadmin.py                # Superadmin endpoints (users, admin creation, revoke)
+|   +-- dependencies.py              # require_privilege(), get_current_user_id() FastAPI deps
+|   +-- database.py                  # get_db_connection(), execute_query() — Windows Auth
+|   +-- .env                         # SERVER, DATABASE environment variables
+|   +-- requirements.txt             # All Python dependencies
+|   |
+|   +-- model/
+|   |   +-- insightface_engine.py    # InsightFace buffalo_l wrapper (detect + embed + identify)
+|   |   +-- inference.py             # InferenceEngine adapter (wraps InsightFaceEngine)
+|   |   +-- __init__.py
+|   |
+|   +-- services/
+|   |   +-- recognition_service.py   # Orchestrates face recognition flow, manages face cache
+|   |   +-- training_service.py      # Generates and stores face embeddings (with crop fallback)
+|   |   +-- csv_service.py           # Generates attendance CSV files
+|   |   +-- __init__.py
+|   |
+|   +-- Attendance Records/          # Auto-created; stores generated CSV files
+|   |
+|   +-- test_admin.py                # Tests: schedule lecture, enroll student, create teacher
+|   +-- test_auth.py                 # Tests: login, bcrypt verification
+|   +-- test_face_model.py           # Tests: InsightFace pipeline, recognition cache, training
+|   +-- test_csv_service.py          # Tests: CSV generation
+|   +-- test_database.py             # Tests: execute_query, connection handling
+|   +-- test_dependencies.py         # Tests: require_privilege, get_current_user_id
+|   +-- test_inference.py            # Tests: InferenceEngine adapter
+|   +-- test_main.py                 # Tests: app startup, health endpoint
+|   +-- test_recognition_service.py  # Tests: recognition service
+|   +-- test_superadmin.py           # Tests: superadmin endpoints
+|   +-- test_training_service.py     # Tests: training service
+|   +-- test_user.py                 # Tests: teacher endpoints
+|
++-- frontend/
+    |
+    +-- vite.config.js               # Vite config with dev proxy to :8000
+    +-- .env                         # VITE_API_URL (empty = use proxy)
+    +-- package.json                 # Dependencies (React 19, Vite 7, Tailwind 3)
+    +-- tailwind.config.js
+    +-- postcss.config.js
+    +-- index.html
+    |
+    +-- src/
+        |
+        +-- App.jsx                  # Routes + ProtectedRoute guards
+        +-- main.jsx                 # React entry point + ThemeProvider
+        +-- index.css                # Global styles + Tailwind directives
+        |
+        +-- services/
+        |   +-- api.js               # Axios instance + all 27 API functions
+        |   +-- auth.service.js      # Thin wrapper (delegates to api.js)
+        |   +-- attendance.services.js  # Stub (kept for compatibility)
+        |
+        +-- components/
+        |   +-- Layout.jsx           # Navbar: logo, username, theme toggle, logout
+        |   +-- ProtectedRoute.jsx   # Auth + privilege level guard
+        |   +-- ThemeProvider.jsx    # Dark/light theme context
+        |   +-- ui/                  # shadcn/ui components
+        |       +-- alert.jsx
+        |       +-- avatar.jsx
+        |       +-- button.jsx
+        |       +-- card.jsx
+        |       +-- dialog.jsx
+        |       +-- input.jsx
+        |       +-- label.jsx
+        |       +-- select.jsx
+        |       +-- table.jsx
+        |
+        +-- pages/
+            +-- Login.jsx            # Login form -> /auth/login
+            +-- Dashboard.jsx        # Teacher: mark attendance (Today/Past tabs) + archive
+            +-- Results.jsx          # Attendance results, face resolution dialog (tabbed)
+            +-- AdminDashboard.jsx   # Admin: create teacher + schedule timetable template
+            +-- AdminStudents.jsx    # Admin: enroll student + unenroll student panel
+            +-- AdminRecords.jsx     # Admin: all lectures + analytics + timetable tab
+            +-- SuperadminDashboard.jsx  # Superadmin: user roster + revoke rights
+            +-- Profile.jsx          # User profile (GET /user/profile)
+

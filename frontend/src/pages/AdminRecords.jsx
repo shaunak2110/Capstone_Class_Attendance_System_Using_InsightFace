@@ -5,14 +5,18 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { ArrowLeft, BookOpen, BarChart3, Download, Search, Users, Percent, CalendarCheck } from 'lucide-react';
-import { getAllLectures, getAttendanceAnalytics } from "@/services/api";
+import { ArrowLeft, BookOpen, BarChart3, Download, Search, Users, Percent, CalendarCheck, Clock, Trash2 } from 'lucide-react';
+import { getAllLectures, getAttendanceAnalytics, getSchedules, deleteSchedule } from "@/services/api";
 
 export default function AdminRecords() {
   const navigate = useNavigate();
-  const [activeTab, setActiveTab] = useState('lectures'); // 'lectures' or 'analytics'
+  const [activeTab, setActiveTab] = useState('lectures'); // 'lectures' | 'analytics' | 'timetable'
   const [lectures, setLectures] = useState([]);
   const [loading, setLoading] = useState(true);
+
+  // Timetable state
+  const [schedules, setSchedules] = useState([]);
+  const [schedulesLoading, setSchedulesLoading] = useState(false);
 
   // Analytics State
   const [filters, setFilters] = useState({ year: '', course_code: '', panel: '', username: '', start_date: '', end_date: '' });
@@ -25,6 +29,28 @@ export default function AdminRecords() {
       .catch((e) => console.error(e))
       .finally(() => setLoading(false));
   }, []);
+
+  const loadSchedules = async () => {
+    setSchedulesLoading(true);
+    try {
+      const data = await getSchedules();
+      setSchedules(data || []);
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setSchedulesLoading(false);
+    }
+  };
+
+  const handleDeleteSchedule = async (scheduleId) => {
+    if (!window.confirm('Deactivate this schedule template? Existing lecture records are preserved.')) return;
+    try {
+      await deleteSchedule(scheduleId);
+      setSchedules(prev => prev.filter(s => s.schedule_id !== scheduleId));
+    } catch (e) {
+      alert('Failed to deactivate schedule: ' + (e?.response?.data?.detail || e.message));
+    }
+  };
 
   const formatDateTime = (dt) => {
     if (!dt) return '';
@@ -94,6 +120,13 @@ export default function AdminRecords() {
             className={activeTab === 'analytics' ? 'bg-teal-600 hover:bg-teal-500 text-slate-900 dark:text-white shadow-[0_0_15px_rgba(20,184,166,0.3)] border border-teal-500/50 transition-all duration-300' : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-white/5'}
           >
             <BarChart3 className="mr-2 h-4 w-4" /> Analytics & Reports
+          </Button>
+          <Button
+            onClick={() => { setActiveTab('timetable'); loadSchedules(); }}
+            variant="ghost"
+            className={activeTab === 'timetable' ? 'bg-purple-600 hover:bg-purple-500 text-slate-900 dark:text-white shadow-[0_0_15px_rgba(147,51,234,0.3)] border border-purple-500/50 transition-all duration-300' : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-white/5'}
+          >
+            <Clock className="mr-2 h-4 w-4" /> Timetable
           </Button>
         </div>
 
@@ -266,6 +299,86 @@ export default function AdminRecords() {
             )}
           </div>
         )}
+
+        {/* VIEW: TIMETABLE SCHEDULES */}
+        {activeTab === 'timetable' && (
+          <Card className="bg-white dark:bg-white/5 border-slate-300 dark:border-white/10 backdrop-blur-xl shadow-xl relative overflow-hidden transition-all duration-300 hover:bg-slate-100 dark:hover:bg-white/[0.07]">
+            <div className="absolute top-0 right-0 w-32 h-32 bg-purple-500/10 rounded-full blur-[50px] pointer-events-none" />
+            <CardHeader className="border-b border-slate-200 dark:border-white/5 pb-4">
+              <CardTitle className="text-slate-900 dark:text-white flex items-center gap-3">
+                <div className="bg-purple-500/20 text-purple-400 p-2.5 rounded-lg border border-purple-500/20 shadow-[0_0_15px_rgba(147,51,234,0.15)]">
+                  <Clock className="h-5 w-5" />
+                </div>
+                Recurring Schedule Templates
+              </CardTitle>
+              <CardDescription className="text-slate-600 dark:text-slate-400 pt-1">
+                All active timetable entries. Each row auto-generates a lecture instance on its scheduled day.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="pt-6">
+              {schedulesLoading ? (
+                <div className="flex justify-center items-center h-32">
+                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-purple-500"></div>
+                </div>
+              ) : schedules.length === 0 ? (
+                <div className="text-center py-12 text-slate-500">
+                  <Clock className="mx-auto h-10 w-10 mb-3 opacity-20" />
+                  <p>No active schedule templates found.</p>
+                  <p className="text-xs mt-1">Create one from the Management Portal.</p>
+                </div>
+              ) : (
+                <div className="rounded-md border border-slate-300 dark:border-white/10 overflow-hidden">
+                  <Table>
+                    <TableHeader className="bg-white dark:bg-black/20 border-b border-slate-300 dark:border-white/10">
+                      <TableRow className="border-b border-slate-300 dark:border-white/10 hover:bg-transparent">
+                        <TableHead className="text-slate-700 dark:text-slate-300 font-semibold">Teacher</TableHead>
+                        <TableHead className="text-slate-700 dark:text-slate-300 font-semibold">Lecture</TableHead>
+                        <TableHead className="text-slate-700 dark:text-slate-300 font-semibold">Course</TableHead>
+                        <TableHead className="text-slate-700 dark:text-slate-300 font-semibold">Day</TableHead>
+                        <TableHead className="text-slate-700 dark:text-slate-300 font-semibold">Time</TableHead>
+                        <TableHead className="text-slate-700 dark:text-slate-300 font-semibold">Panel / Year</TableHead>
+                        <TableHead className="text-slate-700 dark:text-slate-300 font-semibold">Semester</TableHead>
+                        <TableHead className="text-right text-slate-700 dark:text-slate-300 font-semibold">Action</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {schedules.map((s) => (
+                        <TableRow key={s.schedule_id} className="border-b border-slate-200 dark:border-white/5 hover:bg-slate-100 dark:hover:bg-white/5 transition-colors">
+                          <TableCell className="font-medium text-slate-800 dark:text-slate-200">{s.username}</TableCell>
+                          <TableCell className="text-slate-700 dark:text-slate-300">{s.lec_name}</TableCell>
+                          <TableCell className="text-slate-600 dark:text-slate-400">{s.course_code}</TableCell>
+                          <TableCell>
+                            <span className="px-2 py-1 rounded-md text-xs font-semibold bg-purple-500/10 text-purple-400 border border-purple-500/20">
+                              {s.day_of_week}
+                            </span>
+                          </TableCell>
+                          <TableCell className="font-mono text-slate-700 dark:text-slate-300">{s.start_time}</TableCell>
+                          <TableCell className="text-slate-700 dark:text-slate-300">
+                            {s.panel} — {s.year} ({s.specialisation})
+                          </TableCell>
+                          <TableCell className="text-slate-600 dark:text-slate-400 text-xs">
+                            {s.sem_start_date} → {s.sem_end_date}
+                          </TableCell>
+                          <TableCell className="text-right">
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => handleDeleteSchedule(s.schedule_id)}
+                              className="h-8 text-red-400 hover:text-red-300 hover:bg-red-500/10"
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        )}
+
       </div>
     </div>
   );

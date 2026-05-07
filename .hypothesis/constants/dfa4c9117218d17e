@@ -1,0 +1,4 @@
+# file: C:\CapstoneVer3\backend\evaluation\utils\image_loader.py
+# hypothesis_version: 6.151.9
+
+[0.0, 255, '-', '.bmp', '.jpeg', '.jpg', '.png', '=', 'annotations.json', 'closed', 'conditions.json', 'open-set', 'r', 'utf-8']

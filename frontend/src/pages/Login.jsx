@@ -26,7 +26,6 @@ export default function Login() {
 
       localStorage.setItem('token', 'authenticated');
       localStorage.setItem('role', role);
-      localStorage.setItem('name', data.username);
 
       if (data.privilege_level === 1) {
         navigate('/superadmin');
@@ -120,7 +119,8 @@ export default function Login() {
                 <Label className="text-slate-600 dark:text-slate-400 text-xs uppercase tracking-wider">
                   Password
                 </Label>
-                <span className="text-xs text-indigo-400 cursor-pointer hover:text-indigo-300">
+                <span className="text-xs text-indigo-400 cursor-pointer hover:text-indigo-300 select-none"
+                  onClick={() => alert('To reset a password, contact your system administrator or run the password reset SQL in SSMS.\nSee CREDENTIALS.md for instructions.')}>
                   Forgot?
                 </span>
               </div>

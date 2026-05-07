@@ -273,3 +273,60 @@ class TestCSVService:
 
 if __name__ == "__main__":
     pytest.main([__file__, "-v"])
+
+
+# ===========================================================================
+# Feature: cloud-deployment, Property 5: CSV output directory selection
+# Validates: Requirements 8.1, 8.3
+# ===========================================================================
+
+import platform as _platform
+from unittest.mock import patch
+from hypothesis import given, settings
+from hypothesis import strategies as st
+from services.csv_service import _get_output_dir
+
+
+@given(platform_name=st.sampled_from(['Windows', 'Linux', 'Darwin']))
+@settings(max_examples=100)
+def test_pbt_csv_output_dir_contains_attendance_records(platform_name):
+    """
+    Property 5: For any OS platform, _get_output_dir() must return a path
+    containing 'Attendance Records'.
+    """
+    with patch('services.csv_service.platform.system', return_value=platform_name):
+        result = _get_output_dir()
+        assert 'Attendance Records' in result
+
+
+@given(platform_name=st.sampled_from(['Linux', 'Darwin']))
+@settings(max_examples=50)
+def test_pbt_csv_output_dir_starts_with_tmp_on_non_windows(platform_name):
+    """
+    Property 5 (non-Windows): On Linux/Darwin, _get_output_dir() must start with /tmp.
+    """
+    with patch('services.csv_service.platform.system', return_value=platform_name):
+        result = _get_output_dir()
+        assert result.startswith('/tmp'), f"Expected /tmp prefix on {platform_name}, got: {result}"
+
+
+def test_csv_output_dir_windows_does_not_use_tmp():
+    """On Windows, _get_output_dir() must NOT use /tmp."""
+    with patch('services.csv_service.platform.system', return_value='Windows'):
+        result = _get_output_dir()
+        assert '/tmp' not in result
+        assert 'Attendance Records' in result
+
+
+def test_csv_output_dir_linux_uses_tmp():
+    """On Linux, _get_output_dir() must return /tmp/Attendance Records."""
+    with patch('services.csv_service.platform.system', return_value='Linux'):
+        result = _get_output_dir()
+        assert result == '/tmp/Attendance Records'
+
+
+def test_csv_output_dir_darwin_uses_tmp():
+    """On Darwin (macOS), _get_output_dir() must return /tmp/Attendance Records."""
+    with patch('services.csv_service.platform.system', return_value='Darwin'):
+        result = _get_output_dir()
+        assert result == '/tmp/Attendance Records'

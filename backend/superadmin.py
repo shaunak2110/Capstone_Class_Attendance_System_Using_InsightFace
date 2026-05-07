@@ -4,7 +4,7 @@ Super Admin module for the Role-Based Attendance System.
 
 from fastapi import APIRouter, HTTPException, status, Depends
 from pydantic import BaseModel, EmailStr
-from typing import List
+from typing import List, Optional
 import bcrypt
 import pyodbc
 from database import execute_query, get_db_connection
@@ -227,13 +227,16 @@ class UserListItem(BaseModel):
     username: str
     name: str
     privilege_level: int
+    school: Optional[str] = None
+    department: Optional[str] = None
 
 
 @router.get("/users", response_model=List[UserListItem])
 async def get_all_users(_: int = Depends(require_privilege(1))):
     try:
         query = """
-            SELECT l.user_id, l.username, u.name, l.privilege_level
+            SELECT l.user_id, l.username, u.name, l.privilege_level,
+                   u.school, u.department
             FROM Login_Master l
             JOIN User_Master u ON l.user_id = u.user_id
             ORDER BY l.privilege_level, u.name
@@ -244,9 +247,63 @@ async def get_all_users(_: int = Depends(require_privilege(1))):
                 user_id=row.user_id,
                 username=row.username,
                 name=row.name,
-                privilege_level=row.privilege_level
+                privilege_level=row.privilege_level,
+                school=getattr(row, 'school', None),
+                department=getattr(row, 'department', None),
             )
             for row in results
         ]
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+
+
+# -----------------------------
+# REVOKE USER RIGHTS
+# -----------------------------
+
+@router.delete("/revoke-user/{user_id}")
+async def revoke_user(
+    user_id: int,
+    _: int = Depends(require_privilege(1))
+):
+    """
+    Revoke elevated rights for a user by demoting them to privilege level 3 (Teacher).
+    Superadmins (privilege 1) cannot be revoked.
+    """
+    connection = None
+    cursor = None
+    try:
+        connection = get_db_connection()
+        cursor = connection.cursor()
+
+        # Check user exists and is not a superadmin
+        cursor.execute(
+            "SELECT privilege_level FROM Login_Master WHERE user_id = ?",
+            (user_id,)
+        )
+        row = cursor.fetchone()
+        if not row:
+            raise HTTPException(status_code=404, detail="User not found")
+        if row[0] == 1:
+            raise HTTPException(status_code=400, detail="Cannot revoke superadmin rights")
+        if row[0] == 3:
+            raise HTTPException(status_code=400, detail="User already has teacher-level access")
+
+        cursor.execute(
+            "UPDATE Login_Master SET privilege_level = 3 WHERE user_id = ?",
+            (user_id,)
+        )
+        connection.commit()
+        return {"message": "User rights revoked. Account demoted to Teacher level."}
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        if connection:
+            connection.rollback()
+        raise HTTPException(status_code=500, detail=str(e))
+    finally:
+        if cursor:
+            cursor.close()
+        if connection:
+            connection.close()

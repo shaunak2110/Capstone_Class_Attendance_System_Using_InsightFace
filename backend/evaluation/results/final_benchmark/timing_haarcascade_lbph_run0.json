@@ -1,0 +1,18 @@
+{
+  "mean_detection_ms": 61.4284,
+  "median_detection_ms": 41.5635,
+  "std_detection_ms": 130.6036,
+  "min_detection_ms": 13.413,
+  "max_detection_ms": 1351.279,
+  "mean_recognition_ms": 11.2451,
+  "median_recognition_ms": 10.693,
+  "std_recognition_ms": 13.1797,
+  "min_recognition_ms": 0.0,
+  "max_recognition_ms": 79.373,
+  "mean_total_ms": 72.6735,
+  "median_total_ms": 53.2645,
+  "std_total_ms": 131.5098,
+  "min_total_ms": 13.413,
+  "max_total_ms": 1363.535,
+  "n_samples": 102
+}

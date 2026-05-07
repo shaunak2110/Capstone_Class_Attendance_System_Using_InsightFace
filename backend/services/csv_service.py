@@ -10,9 +10,29 @@ Requirements: 11.2, 11.3, 11.4, 11.5, 11.6, 11.7
 
 import os
 import csv
+import platform
 from datetime import datetime
 from typing import Optional
 from database import execute_query
+
+
+def _get_output_dir() -> str:
+    """
+    Return the directory where attendance CSV files should be written.
+
+    On Windows (local development): uses the backend/Attendance Records/ directory
+    anchored to the backend/ folder (parent of services/).
+
+    On Linux/Mac (Render cloud): uses /tmp/Attendance Records/ which is always
+    writable on Render's ephemeral filesystem.
+    """
+    if platform.system() == 'Windows':
+        return os.path.join(
+            os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
+            "Attendance Records"
+        )
+    else:
+        return "/tmp/Attendance Records"
 
 
 def generate_attendance_csv(lec_id: int) -> str:
@@ -122,9 +142,9 @@ def generate_attendance_csv(lec_id: int) -> str:
             'Teacher Name': teacher_name
         })
     
-    # Step 7: Create "Attendance Records/" directory if it doesn't exist
-    # Use absolute path anchored to the backend directory (parent of services/)
-    directory = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "Attendance Records")
+    # Step 7: Create output directory if it doesn't exist
+    # Uses /tmp/Attendance Records on Linux/Render, backend/Attendance Records on Windows
+    directory = _get_output_dir()
     if not os.path.exists(directory):
         os.makedirs(directory)
     

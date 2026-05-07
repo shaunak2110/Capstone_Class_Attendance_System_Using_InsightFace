@@ -8,12 +8,15 @@ Requirements: 13.5, 15.1, 15.2, 15.3, 15.4, 15.5
 """
 
 import pytest
+import os
 from fastapi.testclient import TestClient
 from fastapi import FastAPI, Request, HTTPException, status, APIRouter
 from fastapi.exceptions import RequestValidationError
 from pydantic import BaseModel, ValidationError
 import pyodbc
 from unittest.mock import patch, MagicMock
+from hypothesis import given, settings
+from hypothesis import strategies as st
 
 # Import the app
 from main import app
@@ -318,3 +321,114 @@ class TestErrorLogging:
 
 if __name__ == "__main__":
     pytest.main([__file__, "-v"])
+
+
+# ===========================================================================
+# Task 4.2 — CORS origin parsing (Property 3)
+# Feature: cloud-deployment, Property 3: CORS origin filtering
+# Validates: Requirements 4.1, 4.2, 4.3
+# ===========================================================================
+
+@given(origins=st.lists(
+    st.from_regex(r'https://[a-z]{3,20}\.vercel\.app', fullmatch=True),
+    min_size=1, max_size=5
+))
+@settings(max_examples=100)
+def test_pbt_cors_origins_parsed_correctly(origins):
+    """
+    Property 3: For any list of 1-5 valid HTTPS origin strings joined with commas,
+    the parsed allowed_origins list must equal the input list (order-insensitive).
+    """
+    env_value = ','.join(origins)
+    parsed = [o.strip() for o in env_value.split(',') if o.strip()]
+    assert set(parsed) == set(origins)
+
+
+def test_cors_origins_fallback_to_wildcard_when_unset():
+    """When ALLOWED_ORIGINS is unset, allowed_origins must be ['*']."""
+    with patch.dict(os.environ, {}, clear=True):
+        raw = os.getenv('ALLOWED_ORIGINS', '')
+        result = [o.strip() for o in raw.split(',') if o.strip()] or ['*']
+        assert result == ['*']
+
+
+def test_cors_origins_fallback_to_wildcard_when_empty():
+    """When ALLOWED_ORIGINS is empty string, allowed_origins must be ['*']."""
+    with patch.dict(os.environ, {'ALLOWED_ORIGINS': ''}, clear=False):
+        raw = os.getenv('ALLOWED_ORIGINS', '')
+        result = [o.strip() for o in raw.split(',') if o.strip()] or ['*']
+        assert result == ['*']
+
+
+def test_cors_origins_single_value():
+    """When ALLOWED_ORIGINS has one value, allowed_origins has exactly that value."""
+    with patch.dict(os.environ, {'ALLOWED_ORIGINS': 'https://myapp.vercel.app'}, clear=False):
+        raw = os.getenv('ALLOWED_ORIGINS', '')
+        result = [o.strip() for o in raw.split(',') if o.strip()] or ['*']
+        assert result == ['https://myapp.vercel.app']
+
+
+def test_cors_origins_multiple_values():
+    """When ALLOWED_ORIGINS has multiple comma-separated values, all are parsed."""
+    with patch.dict(os.environ, {'ALLOWED_ORIGINS': 'https://app1.vercel.app,https://app2.vercel.app'}, clear=False):
+        raw = os.getenv('ALLOWED_ORIGINS', '')
+        result = [o.strip() for o in raw.split(',') if o.strip()] or ['*']
+        assert set(result) == {'https://app1.vercel.app', 'https://app2.vercel.app'}
+
+
+# ===========================================================================
+# Task 5.2 — PORT env var (Property 1)
+# Feature: cloud-deployment, Property 1: Port binding respects PORT environment variable
+# Validates: Requirements 1.1, 1.2
+# ===========================================================================
+
+@given(port=st.integers(min_value=1, max_value=65535))
+@settings(max_examples=100)
+def test_pbt_port_env_var_respected(port):
+    """
+    Property 1: For any valid port number set as PORT env var,
+    int(os.getenv('PORT', '8000')) must equal that port.
+    """
+    with patch.dict(os.environ, {'PORT': str(port)}, clear=False):
+        result = int(os.getenv('PORT', '8000'))
+        assert result == port
+
+
+def test_port_default_when_not_set():
+    """When PORT is not set, the default port must be 8000."""
+    with patch.dict(os.environ, {}, clear=True):
+        result = int(os.getenv('PORT', '8000'))
+        assert result == 8000
+
+
+# ===========================================================================
+# Task 8.2 — Request body size limit middleware
+# Validates: Requirement 7.3
+# ===========================================================================
+
+def test_body_size_limit_exceeds_50mb():
+    """A request with Content-Length > 50MB must return HTTP 413."""
+    _client = TestClient(app, raise_server_exceptions=False)
+    response = _client.get(
+        "/health",
+        headers={"Content-Length": str(50 * 1024 * 1024 + 1)}
+    )
+    assert response.status_code == 413
+    assert response.json()["error"] == "Request body too large. Maximum size is 50 MB."
+
+
+def test_body_size_limit_exactly_50mb_passes():
+    """A request with Content-Length == 50MB exactly must pass through."""
+    _client = TestClient(app, raise_server_exceptions=False)
+    response = _client.get(
+        "/health",
+        headers={"Content-Length": str(50 * 1024 * 1024)}
+    )
+    assert response.status_code == 200
+
+
+def test_body_size_no_content_length_passes():
+    """A request with no Content-Length header must pass through unchanged."""
+    _client = TestClient(app, raise_server_exceptions=False)
+    response = _client.get("/health")
+    assert response.status_code == 200

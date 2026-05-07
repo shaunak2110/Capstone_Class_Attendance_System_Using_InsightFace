@@ -80,7 +80,6 @@ export default function Profile() {
           <Card className="bg-red-500/5 border-red-500/20 backdrop-blur-xl shadow-xl">
             <CardContent className="p-6">
               <p className="text-red-400 text-sm font-medium">{error}</p>
-              <p className="text-slate-600 dark:text-slate-400 text-xs mt-1">Your partner's backend endpoint <code className="bg-slate-100 dark:bg-black/30 px-1 rounded">GET /user/profile</code> may not be live yet.</p>
             </CardContent>
           </Card>
         )}

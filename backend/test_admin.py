@@ -1,709 +1,608 @@
 """
 Unit tests for admin.py module.
 
-Tests cover teacher creation and lecture scheduling endpoints.
+Tests cover teacher creation, lecture scheduling, and student enrollment endpoints.
+All tests use the current InsightFace-based pipeline (no FaceModel / torch).
 """
 
 import pytest
+import base64
+from io import BytesIO
 from datetime import datetime
 from fastapi import status
 from fastapi.testclient import TestClient
 from unittest.mock import patch, MagicMock
+
+from fastapi import FastAPI
 from admin import router
 
-
-# Create test client
-from fastapi import FastAPI
 app = FastAPI()
 app.include_router(router)
 client = TestClient(app)
 
+# ---------------------------------------------------------------------------
+# Helpers
+# ---------------------------------------------------------------------------
+
+def _make_b64_image() -> str:
+    """Return a minimal valid base64-encoded 1×1 red PNG."""
+    try:
+        from PIL import Image
+        img = Image.new("RGB", (1, 1), color="red")
+        buf = BytesIO()
+        img.save(buf, format="PNG")
+        return base64.b64encode(buf.getvalue()).decode()
+    except ImportError:
+        # Fallback: raw 1×1 red PNG bytes (hard-coded)
+        raw = (
+            b"\x89PNG\r\n\x1a\n\x00\x00\x00\rIHDR\x00\x00\x00\x01"
+            b"\x00\x00\x00\x01\x08\x02\x00\x00\x00\x90wS\xde\x00\x00"
+            b"\x00\x0cIDATx\x9cc\xf8\x0f\x00\x00\x01\x01\x00\x05\x18"
+            b"\xd8N\x00\x00\x00\x00IEND\xaeB`\x82"
+        )
+        return base64.b64encode(raw).decode()
+
+
+# ---------------------------------------------------------------------------
+# POST /admin/schedule-lecture
+# ---------------------------------------------------------------------------
 
 class TestScheduleLectureEndpoint:
-    """Test suite for POST /admin/schedule-lecture endpoint."""
-    
-    @patch('admin.get_db_connection')
-    def test_successful_lecture_scheduling(self, mock_get_db_connection):
-        """
-        Test successful lecture scheduling with all required fields.
-        Requirements: 7.1, 7.2, 7.5
-        """
-        # Setup: Mock database connection and cursor
-        mock_connection = MagicMock()
-        mock_cursor = MagicMock()
-        mock_connection.cursor.return_value = mock_cursor
-        mock_get_db_connection.return_value = mock_connection
-        
-        # Mock MAX(lec_id) query to return 10
-        mock_cursor.fetchone.return_value = [10]
-        
-        # Execute: Schedule lecture with valid data
-        lecture_datetime = "2024-01-15T10:00:00"
-        response = client.post("/admin/schedule-lecture", 
+    """Tests for POST /admin/schedule-lecture."""
+
+    @patch("admin.get_db_connection")
+    def test_schedule_by_username_success(self, mock_conn):
+        """Schedule a lecture by providing teacher username (frontend flow)."""
+        conn = MagicMock()
+        cursor = MagicMock()
+        conn.cursor.return_value = cursor
+        mock_conn.return_value = conn
+
+        # First fetchone: username lookup → (user_id, school, department)
+        # Second fetchone: OUTPUT INSERTED.lec_id → lec_id
+        cursor.fetchone.side_effect = [(42, "Engineering", "CS"), (101,)]
+
+        response = client.post(
+            "/admin/schedule-lecture",
             headers={"X-Privilege-Level": "2"},
             json={
-                "user_id": 15,
-                "school": "Engineering School",
-                "department": "Computer Science",
-                "lecorlab": "Lecture",
+                "username": "teacher1",
+                "year": "FY",
+                "specialisation": "CSE",
+                "lecorlab": "lec",
                 "panel": "H",
                 "lec_name": "Data Structures",
                 "course_code": "CS201",
-                "lecture_datetime": lecture_datetime
-            }
+                "lecture_datetime": "2024-01-15T10:00:00",
+            },
         )
-        
-        # Verify: Response is successful
-        assert response.status_code == status.HTTP_201_CREATED
+
+        assert response.status_code == status.HTTP_200_OK
         data = response.json()
-        assert data["lec_id"] == 11  # MAX(10) + 1
-        assert data["message"] == "Lecture scheduled successfully"
-        
-        # Verify: INSERT query was executed with correct parameters
-        insert_call = mock_cursor.execute.call_args_list[1]  # Second call is INSERT
-        assert "INSERT INTO Lecture_Master" in insert_call[0][0]
-        assert "attendance_status" in insert_call[0][0]
-        assert "'N'" in insert_call[0][0]  # Default attendance_status
-        
-        # Verify: Commit was called
-        mock_connection.commit.assert_called_once()
-    
-    @patch('admin.get_db_connection')
-    def test_lecture_scheduling_sets_attendance_status_to_n(self, mock_get_db_connection):
-        """
-        Test that attendance_status is set to 'N' by default.
-        Requirements: 7.2
-        """
-        # Setup: Mock database
-        mock_connection = MagicMock()
-        mock_cursor = MagicMock()
-        mock_connection.cursor.return_value = mock_cursor
-        mock_get_db_connection.return_value = mock_connection
-        mock_cursor.fetchone.return_value = [5]
-        
-        # Execute: Schedule lecture
-        response = client.post("/admin/schedule-lecture",
+        assert data["lec_id"] == 101
+        assert "scheduled" in data["message"].lower()
+        conn.commit.assert_called_once()
+
+    @patch("admin.get_db_connection")
+    def test_schedule_by_user_id_success(self, mock_conn):
+        """Schedule a lecture by providing user_id directly."""
+        conn = MagicMock()
+        cursor = MagicMock()
+        conn.cursor.return_value = cursor
+        mock_conn.return_value = conn
+        cursor.fetchone.return_value = (55,)
+
+        response = client.post(
+            "/admin/schedule-lecture",
             headers={"X-Privilege-Level": "2"},
             json={
-                "user_id": 20,
-                "school": "Science School",
-                "department": "Physics",
-                "lecorlab": "Lab",
+                "user_id": 10,
+                "year": "SY",
+                "specialisation": "AIDS",
+                "lecorlab": "lab",
                 "panel": "I",
-                "lec_name": "Quantum Mechanics",
-                "course_code": "PHY301",
-                "lecture_datetime": "2024-02-20T14:00:00"
-            }
+                "lec_name": "ML Lab",
+                "course_code": "AI301",
+                "lecture_datetime": "2024-03-01T14:00:00",
+            },
         )
-        
-        # Verify: Success
-        assert response.status_code == status.HTTP_201_CREATED
-        
-        # Verify: attendance_status='N' in INSERT query
-        insert_call = mock_cursor.execute.call_args_list[1]
-        assert "'N'" in insert_call[0][0]
-    
-    @patch('admin.get_db_connection')
-    def test_lecture_scheduling_generates_unique_lec_id(self, mock_get_db_connection):
-        """
-        Test that unique lec_id is generated automatically.
-        Requirements: 7.5
-        """
-        # Setup: Mock database with different MAX values
-        mock_connection = MagicMock()
-        mock_cursor = MagicMock()
-        mock_connection.cursor.return_value = mock_cursor
-        mock_get_db_connection.return_value = mock_connection
-        
-        test_cases = [0, 10, 100, 999]
-        
-        for max_id in test_cases:
-            mock_cursor.fetchone.return_value = [max_id]
-            
-            response = client.post("/admin/schedule-lecture",
-                headers={"X-Privilege-Level": "2"},
-                json={
-                    "user_id": 1,
-                    "school": "Test School",
-                    "department": "Test Dept",
-                    "lecorlab": "Lecture",
-                    "panel": "A",
-                    "lec_name": "Test Lecture",
-                    "course_code": "TEST101",
-                    "lecture_datetime": "2024-01-01T10:00:00"
-                }
-            )
-            
-            assert response.status_code == status.HTTP_201_CREATED
-            assert response.json()["lec_id"] == max_id + 1
-    
-    @patch('admin.get_db_connection')
-    def test_lecture_scheduling_handles_null_max_id(self, mock_get_db_connection):
-        """
-        Test that lec_id generation handles empty table (NULL MAX).
-        """
-        # Setup: Mock database with NULL MAX (empty table)
-        mock_connection = MagicMock()
-        mock_cursor = MagicMock()
-        mock_connection.cursor.return_value = mock_cursor
-        mock_get_db_connection.return_value = mock_connection
-        mock_cursor.fetchone.return_value = [None]
-        
-        # Execute: Schedule first lecture
-        response = client.post("/admin/schedule-lecture",
+
+        assert response.status_code == status.HTTP_200_OK
+        assert response.json()["lec_id"] == 55
+
+    @patch("admin.get_db_connection")
+    def test_schedule_unknown_username_returns_404(self, mock_conn):
+        """Unknown teacher username should return 404."""
+        conn = MagicMock()
+        cursor = MagicMock()
+        conn.cursor.return_value = cursor
+        mock_conn.return_value = conn
+        cursor.fetchone.return_value = None  # username not found
+
+        response = client.post(
+            "/admin/schedule-lecture",
             headers={"X-Privilege-Level": "2"},
             json={
-                "user_id": 1,
-                "school": "School",
-                "department": "Dept",
-                "lecorlab": "Lecture",
+                "username": "ghost_teacher",
+                "year": "FY",
+                "specialisation": "CSE",
+                "lecorlab": "lec",
                 "panel": "A",
-                "lec_name": "First Lecture",
-                "course_code": "FIRST",
-                "lecture_datetime": "2024-01-01T10:00:00"
-            }
+                "lec_name": "Test",
+                "course_code": "T101",
+                "lecture_datetime": "2024-01-01T10:00:00",
+            },
         )
-        
-        # Verify: lec_id starts at 1
-        assert response.status_code == status.HTTP_201_CREATED
-        assert response.json()["lec_id"] == 1
-    
-    def test_lecture_scheduling_missing_fields_returns_400(self):
-        """
-        Test that missing required fields return 400 error.
-        Requirements: 7.3, 15.2
-        """
-        # Test missing each required field
-        required_fields = [
-            "user_id", "school", "department", "lecorlab", 
-            "panel", "lec_name", "course_code", "lecture_datetime"
-        ]
-        
-        base_data = {
-            "user_id": 1,
-            "school": "School",
-            "department": "Dept",
-            "lecorlab": "Lecture",
-            "panel": "A",
-            "lec_name": "Test",
-            "course_code": "TEST",
-            "lecture_datetime": "2024-01-01T10:00:00"
-        }
-        
-        for field in required_fields:
-            # Create request with missing field
-            test_data = base_data.copy()
-            del test_data[field]
-            
-            response = client.post("/admin/schedule-lecture",
-                headers={"X-Privilege-Level": "2"},
-                json=test_data
-            )
-            
-            # Verify: 422 error for Pydantic validation
-            assert response.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
-    
-    def test_lecture_scheduling_without_admin_privilege_returns_403(self):
-        """
-        Test that non-admin users cannot schedule lectures.
-        Requirements: 2.5, 15.5
-        """
-        # Test with privilege level 3 (Teacher)
-        response = client.post("/admin/schedule-lecture",
+
+        assert response.status_code == status.HTTP_404_NOT_FOUND
+        assert "ghost_teacher" in response.json()["detail"]
+
+    def test_schedule_no_user_or_username_returns_400(self):
+        """Omitting both user_id and username should return 400."""
+        response = client.post(
+            "/admin/schedule-lecture",
+            headers={"X-Privilege-Level": "2"},
+            json={
+                "year": "FY",
+                "specialisation": "CSE",
+                "lecorlab": "lec",
+                "panel": "A",
+                "lec_name": "Test",
+                "course_code": "T101",
+                "lecture_datetime": "2024-01-01T10:00:00",
+            },
+        )
+        assert response.status_code == status.HTTP_400_BAD_REQUEST
+
+    def test_schedule_teacher_privilege_returns_403(self):
+        """Privilege level 3 (teacher) must not schedule lectures."""
+        response = client.post(
+            "/admin/schedule-lecture",
             headers={"X-Privilege-Level": "3"},
             json={
                 "user_id": 1,
-                "school": "School",
-                "department": "Dept",
-                "lecorlab": "Lecture",
+                "year": "FY",
+                "specialisation": "CSE",
+                "lecorlab": "lec",
                 "panel": "A",
                 "lec_name": "Test",
-                "course_code": "TEST",
-                "lecture_datetime": "2024-01-01T10:00:00"
-            }
+                "course_code": "T101",
+                "lecture_datetime": "2024-01-01T10:00:00",
+            },
         )
-        
         assert response.status_code == status.HTTP_403_FORBIDDEN
-        assert "Admin privileges required" in response.json()["detail"]
-    
-    def test_lecture_scheduling_without_privilege_header_returns_403(self):
-        """
-        Test that requests without privilege header are denied.
-        """
-        response = client.post("/admin/schedule-lecture",
+
+    def test_schedule_no_privilege_header_returns_403(self):
+        """Missing X-Privilege-Level header must return 403."""
+        response = client.post(
+            "/admin/schedule-lecture",
             json={
                 "user_id": 1,
-                "school": "School",
-                "department": "Dept",
-                "lecorlab": "Lecture",
+                "year": "FY",
+                "specialisation": "CSE",
+                "lecorlab": "lec",
                 "panel": "A",
                 "lec_name": "Test",
-                "course_code": "TEST",
-                "lecture_datetime": "2024-01-01T10:00:00"
-            }
+                "course_code": "T101",
+                "lecture_datetime": "2024-01-01T10:00:00",
+            },
         )
-        
         assert response.status_code == status.HTTP_403_FORBIDDEN
-    
-    @patch('admin.get_db_connection')
-    def test_lecture_scheduling_database_error_returns_500(self, mock_get_db_connection):
-        """
-        Test that database errors return 500 status code.
-        Requirements: 15.1
-        """
-        # Setup: Simulate database error
-        import pyodbc
-        mock_get_db_connection.side_effect = pyodbc.Error("Database connection failed")
-        
-        # Execute: Attempt to schedule lecture
-        response = client.post("/admin/schedule-lecture",
+
+    def test_schedule_missing_required_fields_returns_422(self):
+        """Missing Pydantic-required fields must return 422."""
+        response = client.post(
+            "/admin/schedule-lecture",
             headers={"X-Privilege-Level": "2"},
-            json={
-                "user_id": 1,
-                "school": "School",
-                "department": "Dept",
-                "lecorlab": "Lecture",
-                "panel": "A",
-                "lec_name": "Test",
-                "course_code": "TEST",
-                "lecture_datetime": "2024-01-01T10:00:00"
-            }
+            json={"user_id": 1},  # missing year, panel, lec_name, etc.
         )
-        
-        # Verify: 500 error returned
-        assert response.status_code == status.HTTP_500_INTERNAL_SERVER_ERROR
-        assert "Database error" in response.json()["detail"]
-    
-    @patch('admin.get_db_connection')
-    def test_lecture_scheduling_rollback_on_error(self, mock_get_db_connection):
-        """
-        Test that transaction is rolled back on error.
-        """
-        # Setup: Mock database that fails on INSERT
-        mock_connection = MagicMock()
-        mock_cursor = MagicMock()
-        mock_connection.cursor.return_value = mock_cursor
-        mock_get_db_connection.return_value = mock_connection
-        
-        # First call (MAX query) succeeds, second call (INSERT) fails
-        mock_cursor.fetchone.return_value = [10]
-        import pyodbc
-        mock_cursor.execute.side_effect = [None, pyodbc.Error("Insert failed")]
-        
-        # Execute: Attempt to schedule lecture
-        response = client.post("/admin/schedule-lecture",
-            headers={"X-Privilege-Level": "2"},
-            json={
-                "user_id": 1,
-                "school": "School",
-                "department": "Dept",
-                "lecorlab": "Lecture",
-                "panel": "A",
-                "lec_name": "Test",
-                "course_code": "TEST",
-                "lecture_datetime": "2024-01-01T10:00:00"
-            }
-        )
-        
-        # Verify: Rollback was called
-        mock_connection.rollback.assert_called_once()
-        assert response.status_code == status.HTTP_500_INTERNAL_SERVER_ERROR
-    
-    @patch('admin.get_db_connection')
-    def test_lecture_scheduling_with_superadmin_privilege(self, mock_get_db_connection):
-        """
-        Test that Super Admin (level 1) can also schedule lectures.
-        Requirements: 2.5
-        """
-        # Setup: Mock database
-        mock_connection = MagicMock()
-        mock_cursor = MagicMock()
-        mock_connection.cursor.return_value = mock_cursor
-        mock_get_db_connection.return_value = mock_connection
-        mock_cursor.fetchone.return_value = [5]
-        
-        # Execute: Schedule lecture with Super Admin privilege
-        response = client.post("/admin/schedule-lecture",
+        assert response.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
+
+    @patch("admin.get_db_connection")
+    def test_schedule_superadmin_can_schedule(self, mock_conn):
+        """Privilege level 1 (superadmin) must also be able to schedule."""
+        conn = MagicMock()
+        cursor = MagicMock()
+        conn.cursor.return_value = cursor
+        mock_conn.return_value = conn
+        cursor.fetchone.return_value = (77,)
+
+        response = client.post(
+            "/admin/schedule-lecture",
             headers={"X-Privilege-Level": "1"},
             json={
-                "user_id": 1,
-                "school": "School",
-                "department": "Dept",
-                "lecorlab": "Lecture",
-                "panel": "A",
-                "lec_name": "Test",
-                "course_code": "TEST",
-                "lecture_datetime": "2024-01-01T10:00:00"
-            }
+                "user_id": 5,
+                "year": "TY",
+                "specialisation": "CSE",
+                "lecorlab": "lec",
+                "panel": "B",
+                "lec_name": "OS",
+                "course_code": "CS401",
+                "lecture_datetime": "2024-06-01T09:00:00",
+            },
         )
-        
-        # Verify: Success
-        assert response.status_code == status.HTTP_201_CREATED
-    
-    @patch('admin.get_db_connection')
-    def test_lecture_scheduling_associates_with_user_id(self, mock_get_db_connection):
-        """
-        Test that lecture is associated with the provided user_id.
-        Requirements: 7.4
-        """
-        # Setup: Mock database
-        mock_connection = MagicMock()
-        mock_cursor = MagicMock()
-        mock_connection.cursor.return_value = mock_cursor
-        mock_get_db_connection.return_value = mock_connection
-        mock_cursor.fetchone.return_value = [0]
-        
-        # Execute: Schedule lecture with specific user_id
-        test_user_id = 42
-        response = client.post("/admin/schedule-lecture",
+        assert response.status_code == status.HTTP_200_OK
+
+    @patch("admin.get_db_connection")
+    def test_schedule_rollback_on_db_error(self, mock_conn):
+        """DB error during INSERT must trigger rollback and return 500."""
+        import pyodbc
+
+        conn = MagicMock()
+        cursor = MagicMock()
+        conn.cursor.return_value = cursor
+        mock_conn.return_value = conn
+
+        # username lookup succeeds, INSERT raises
+        cursor.fetchone.return_value = (10, "Eng", "CS")
+        cursor.execute.side_effect = [None, pyodbc.Error("insert failed")]
+
+        response = client.post(
+            "/admin/schedule-lecture",
             headers={"X-Privilege-Level": "2"},
             json={
-                "user_id": test_user_id,
-                "school": "School",
-                "department": "Dept",
-                "lecorlab": "Lecture",
+                "username": "teacher1",
+                "year": "FY",
+                "specialisation": "CSE",
+                "lecorlab": "lec",
                 "panel": "A",
                 "lec_name": "Test",
-                "course_code": "TEST",
-                "lecture_datetime": "2024-01-01T10:00:00"
-            }
+                "course_code": "T101",
+                "lecture_datetime": "2024-01-01T10:00:00",
+            },
         )
-        
-        # Verify: Success
-        assert response.status_code == status.HTTP_201_CREATED
-        
-        # Verify: user_id is in INSERT parameters
-        insert_call = mock_cursor.execute.call_args_list[1]
-        assert test_user_id in insert_call[0][1]
+
+        conn.rollback.assert_called_once()
+        assert response.status_code == status.HTTP_500_INTERNAL_SERVER_ERROR
 
 
-if __name__ == '__main__':
-    pytest.main([__file__, '-v'])
-
-
+# ---------------------------------------------------------------------------
+# POST /admin/enroll-student
+# ---------------------------------------------------------------------------
 
 class TestEnrollStudentEndpoint:
-    """Test suite for POST /admin/enroll-student endpoint."""
-    
-    @patch('admin.get_face_model')
-    @patch('admin.incremental_train')
-    @patch('admin.get_db_connection')
-    def test_successful_student_enrollment(self, mock_get_db_connection, mock_incremental_train, mock_get_face_model):
-        """
-        Test successful student enrollment with exactly 25 images.
-        Requirements: 6.1, 6.2, 6.4, 6.5
-        """
-        # Setup: Mock database connection and cursor
-        mock_connection = MagicMock()
-        mock_cursor = MagicMock()
-        mock_connection.cursor.return_value = mock_cursor
-        mock_get_db_connection.return_value = mock_connection
-        
-        # Mock PRN check query to return None (student doesn't exist)
-        mock_cursor.fetchone.return_value = None
-        
-        # Mock face model
-        mock_face_model = MagicMock()
-        mock_get_face_model.return_value = mock_face_model
-        
-        # Create 25 base64-encoded test images (1x1 red pixel)
-        import base64
-        from PIL import Image
-        from io import BytesIO
-        
-        test_image = Image.new('RGB', (1, 1), color='red')
-        buffer = BytesIO()
-        test_image.save(buffer, format='PNG')
-        base64_image = base64.b64encode(buffer.getvalue()).decode('utf-8')
-        
-        images = [base64_image] * 25
-        
-        # Execute: Enroll student with valid data
-        response = client.post("/admin/enroll-student",
+    """Tests for POST /admin/enroll-student (InsightFace pipeline)."""
+
+    @patch("admin.incremental_enroll")
+    @patch("admin.get_db_connection")
+    def test_enroll_new_student_success(self, mock_conn, mock_enroll):
+        """New student with valid images should enroll successfully."""
+        conn = MagicMock()
+        cursor = MagicMock()
+        conn.cursor.return_value = cursor
+        mock_conn.return_value = conn
+        cursor.fetchone.return_value = None  # student does not exist yet
+        mock_enroll.return_value = True  # embedding stored
+
+        img = _make_b64_image()
+        response = client.post(
+            "/admin/enroll-student",
             headers={"X-Privilege-Level": "2"},
             json={
-                "prn": "PRN12345",
-                "name": "Jane Smith",
+                "prn": "PRN001",
+                "name": "Alice",
+                "year": "FY",
+                "course": "B.Tech",
+                "specialisation": "CSE",
+                "rollno": "1",
                 "panel": "H",
-                "images": images
-            }
+                "images": [img] * 5,
+            },
         )
-        
-        # Verify: Response is successful
-        assert response.status_code == status.HTTP_201_CREATED
+
+        assert response.status_code == status.HTTP_200_OK
         data = response.json()
-        assert data["prn"] == "PRN12345"
-        assert data["message"] == "Student enrolled successfully"
-        
-        # Verify: INSERT query was executed
-        insert_call = mock_cursor.execute.call_args_list[1]  # Second call is INSERT
-        assert "INSERT INTO Student_Master" in insert_call[0][0]
-        assert "PRN12345" in insert_call[0][1]
-        assert "Jane Smith" in insert_call[0][1]
-        assert "H" in insert_call[0][1]
-        
-        # Verify: Commit was called
-        mock_connection.commit.assert_called_once()
-        
-        # Verify: incremental_train was called
-        mock_incremental_train.assert_called_once()
-        call_args = mock_incremental_train.call_args
-        assert call_args[0][1] == "PRN12345"  # PRN argument
-        assert len(call_args[0][2]) == 25  # 25 face images
-    
-    @patch('admin.get_db_connection')
-    def test_enrollment_with_wrong_image_count_returns_400(self, mock_get_db_connection):
-        """
-        Test that enrollment with not exactly 25 images returns 400.
-        Requirements: 6.1, 15.2
-        """
-        # Test with various wrong counts
-        for count in [0, 1, 10, 24, 26, 50]:
-            images = ["base64_image"] * count
-            
-            response = client.post("/admin/enroll-student",
-                headers={"X-Privilege-Level": "2"},
-                json={
-                    "prn": "PRN12345",
-                    "name": "Jane Smith",
-                    "panel": "H",
-                    "images": images
-                }
-            )
-            
-            # Verify: 400 error returned
-            assert response.status_code == status.HTTP_400_BAD_REQUEST
-            assert "Exactly 25 images required" in response.json()["detail"]
-            assert str(count) in response.json()["detail"]
-    
-    @patch('admin.get_db_connection')
-    def test_enrollment_with_duplicate_prn_returns_409(self, mock_get_db_connection):
-        """
-        Test that enrollment with existing PRN returns 409.
-        Requirements: 6.6, 15.4
-        """
-        # Setup: Mock database to return existing student
-        mock_connection = MagicMock()
-        mock_cursor = MagicMock()
-        mock_connection.cursor.return_value = mock_cursor
-        mock_get_db_connection.return_value = mock_connection
-        
-        # Mock PRN check query to return existing student
-        mock_cursor.fetchone.return_value = ["PRN12345"]
-        
-        # Create valid base64 images
-        import base64
-        from PIL import Image
-        from io import BytesIO
-        
-        test_image = Image.new('RGB', (1, 1), color='red')
-        buffer = BytesIO()
-        test_image.save(buffer, format='PNG')
-        base64_image = base64.b64encode(buffer.getvalue()).decode('utf-8')
-        images = [base64_image] * 25
-        
-        # Execute: Attempt to enroll student with duplicate PRN
-        response = client.post("/admin/enroll-student",
+        assert data["prn"] == "PRN001"
+        assert "enrolled" in data["message"].lower()
+        # incremental_enroll called once per image
+        assert mock_enroll.call_count == 5
+
+    @patch("admin.incremental_enroll")
+    @patch("admin.get_db_connection")
+    def test_enroll_updates_existing_student(self, mock_conn, mock_enroll):
+        """Existing student should be updated (not rejected)."""
+        conn = MagicMock()
+        cursor = MagicMock()
+        conn.cursor.return_value = cursor
+        mock_conn.return_value = conn
+        cursor.fetchone.return_value = ("PRN001",)  # student exists
+        mock_enroll.return_value = True
+
+        img = _make_b64_image()
+        response = client.post(
+            "/admin/enroll-student",
             headers={"X-Privilege-Level": "2"},
             json={
-                "prn": "PRN12345",
-                "name": "Jane Smith",
+                "prn": "PRN001",
+                "name": "Alice Updated",
+                "year": "SY",
+                "course": "B.Tech",
+                "specialisation": "CSE",
+                "rollno": "1",
                 "panel": "H",
-                "images": images
-            }
+                "images": [img],
+            },
         )
-        
-        # Verify: 409 conflict error returned
-        assert response.status_code == status.HTTP_409_CONFLICT
-        assert "already exists" in response.json()["detail"]
-        assert "PRN12345" in response.json()["detail"]
-    
-    def test_enrollment_without_admin_privilege_returns_403(self):
-        """
-        Test that non-admin users cannot enroll students.
-        Requirements: 2.5, 15.5
-        """
-        images = ["base64_image"] * 25
-        
-        # Test with privilege level 3 (Teacher)
-        response = client.post("/admin/enroll-student",
+
+        assert response.status_code == status.HTTP_200_OK
+        # UPDATE should have been called
+        executed_sqls = [str(call[0][0]) for call in cursor.execute.call_args_list]
+        assert any("UPDATE" in sql for sql in executed_sqls)
+
+    @patch("admin.incremental_enroll")
+    @patch("admin.get_db_connection")
+    def test_enroll_no_faces_detected_returns_400(self, mock_conn, mock_enroll):
+        """If no embeddings are stored (all images fail), return 400."""
+        conn = MagicMock()
+        cursor = MagicMock()
+        conn.cursor.return_value = cursor
+        mock_conn.return_value = conn
+        cursor.fetchone.return_value = None
+        mock_enroll.return_value = False  # no face detected in any image
+
+        img = _make_b64_image()
+        response = client.post(
+            "/admin/enroll-student",
+            headers={"X-Privilege-Level": "2"},
+            json={
+                "prn": "PRN002",
+                "name": "Bob",
+                "year": "FY",
+                "course": "B.Tech",
+                "specialisation": "CSE",
+                "rollno": "2",
+                "panel": "H",
+                "images": [img],
+            },
+        )
+
+        assert response.status_code == status.HTTP_400_BAD_REQUEST
+        assert "face" in response.json()["detail"].lower()
+
+    def test_enroll_teacher_privilege_returns_403(self):
+        """Privilege level 3 must not enroll students."""
+        response = client.post(
+            "/admin/enroll-student",
             headers={"X-Privilege-Level": "3"},
             json={
-                "prn": "PRN12345",
-                "name": "Jane Smith",
+                "prn": "PRN003",
+                "name": "Carol",
+                "year": "FY",
+                "course": "B.Tech",
+                "specialisation": "CSE",
+                "rollno": "3",
                 "panel": "H",
-                "images": images
-            }
+                "images": [_make_b64_image()],
+            },
         )
-        
         assert response.status_code == status.HTTP_403_FORBIDDEN
-        assert "Admin privileges required" in response.json()["detail"]
-    
-    def test_enrollment_missing_required_fields_returns_400(self):
-        """
-        Test that missing required fields return 400 error.
-        Requirements: 15.2
-        """
-        images = ["base64_image"] * 25
-        
-        # Test missing prn
-        response = client.post("/admin/enroll-student",
+
+    def test_enroll_missing_required_fields_returns_422(self):
+        """Missing Pydantic-required fields must return 422."""
+        response = client.post(
+            "/admin/enroll-student",
             headers={"X-Privilege-Level": "2"},
-            json={
-                "name": "Jane Smith",
-                "panel": "H",
-                "images": images
-            }
+            json={"prn": "PRN004"},  # missing name, year, course, etc.
         )
         assert response.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
-        
-        # Test missing name
-        response = client.post("/admin/enroll-student",
-            headers={"X-Privilege-Level": "2"},
+
+    def test_enroll_no_privilege_header_returns_403(self):
+        """Missing X-Privilege-Level header must return 403."""
+        response = client.post(
+            "/admin/enroll-student",
             json={
-                "prn": "PRN12345",
+                "prn": "PRN005",
+                "name": "Dave",
+                "year": "FY",
+                "course": "B.Tech",
+                "specialisation": "CSE",
+                "rollno": "5",
                 "panel": "H",
-                "images": images
-            }
+                "images": [_make_b64_image()],
+            },
         )
-        assert response.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
-        
-        # Test missing panel
-        response = client.post("/admin/enroll-student",
+        assert response.status_code == status.HTTP_403_FORBIDDEN
+
+
+# ---------------------------------------------------------------------------
+# POST /admin/create-teacher
+# ---------------------------------------------------------------------------
+
+class TestCreateTeacherEndpoint:
+    """Tests for POST /admin/create-teacher."""
+
+    @patch("admin.get_db_connection")
+    def test_create_teacher_success(self, mock_conn):
+        """Valid payload should create a teacher and return user_id."""
+        conn = MagicMock()
+        cursor = MagicMock()
+        conn.cursor.return_value = cursor
+        mock_conn.return_value = conn
+        cursor.fetchone.side_effect = [None, (99,)]  # no duplicate, then user_id
+
+        response = client.post(
+            "/admin/create-teacher",
             headers={"X-Privilege-Level": "2"},
             json={
-                "prn": "PRN12345",
-                "name": "Jane Smith",
-                "images": images
-            }
+                "username": "newteacher",
+                "password": "secret123",
+                "name": "New Teacher",
+                "email_id": "teacher@uni.edu",
+                "school": "Engineering",
+                "department": "CS",
+                "mob": "9999999999",
+            },
         )
-        assert response.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
-    
-    @patch('admin.get_face_model')
-    @patch('admin.incremental_train')
-    @patch('admin.get_db_connection')
-    def test_enrollment_rollback_on_training_error(self, mock_get_db_connection, mock_incremental_train, mock_get_face_model):
-        """
-        Test that database transaction is rolled back if training fails.
-        """
-        # Setup: Mock database
-        mock_connection = MagicMock()
-        mock_cursor = MagicMock()
-        mock_connection.cursor.return_value = mock_cursor
-        mock_get_db_connection.return_value = mock_connection
-        mock_cursor.fetchone.return_value = None
-        
-        # Mock face model
-        mock_face_model = MagicMock()
-        mock_get_face_model.return_value = mock_face_model
-        
-        # Mock training to fail
-        mock_incremental_train.side_effect = RuntimeError("Training failed")
-        
-        # Create test images
-        import base64
-        from PIL import Image
-        from io import BytesIO
-        
-        test_image = Image.new('RGB', (1, 1), color='red')
-        buffer = BytesIO()
-        test_image.save(buffer, format='PNG')
-        base64_image = base64.b64encode(buffer.getvalue()).decode('utf-8')
-        images = [base64_image] * 25
-        
-        # Execute: Attempt to enroll student
-        response = client.post("/admin/enroll-student",
+
+        assert response.status_code == status.HTTP_200_OK
+        data = response.json()
+        assert data["user_id"] == 99
+        assert "created" in data["message"].lower()
+
+    @patch("admin.get_db_connection")
+    def test_create_teacher_duplicate_username_returns_409(self, mock_conn):
+        """Duplicate username must return 409."""
+        conn = MagicMock()
+        cursor = MagicMock()
+        conn.cursor.return_value = cursor
+        mock_conn.return_value = conn
+        cursor.fetchone.return_value = (1,)  # username exists
+
+        response = client.post(
+            "/admin/create-teacher",
             headers={"X-Privilege-Level": "2"},
             json={
-                "prn": "PRN12345",
-                "name": "Jane Smith",
-                "panel": "H",
-                "images": images
-            }
+                "username": "existing",
+                "password": "pass",
+                "name": "Existing",
+                "email_id": "e@uni.edu",
+                "school": "Eng",
+                "department": "CS",
+                "mob": "0000000000",
+            },
         )
-        
-        # Verify: Error returned
-        assert response.status_code == status.HTTP_500_INTERNAL_SERVER_ERROR
-        assert "training error" in response.json()["detail"].lower()
-        
-        # Verify: Rollback was called
-        mock_connection.rollback.assert_called_once()
-    
-    @patch('admin.get_db_connection')
-    def test_enrollment_with_invalid_base64_returns_400(self, mock_get_db_connection):
-        """
-        Test that invalid base64 images return 400 error.
-        """
-        # Setup: Mock database
-        mock_connection = MagicMock()
-        mock_cursor = MagicMock()
-        mock_connection.cursor.return_value = mock_cursor
-        mock_get_db_connection.return_value = mock_connection
-        mock_cursor.fetchone.return_value = None
-        
-        # Create list with one invalid base64 string
-        images = ["invalid_base64_data"] * 25
-        
-        # Execute: Attempt to enroll student
-        response = client.post("/admin/enroll-student",
-            headers={"X-Privilege-Level": "2"},
+
+        assert response.status_code == status.HTTP_409_CONFLICT
+
+    def test_create_teacher_no_privilege_returns_403(self):
+        """Privilege level 3 must not create teachers."""
+        response = client.post(
+            "/admin/create-teacher",
+            headers={"X-Privilege-Level": "3"},
             json={
-                "prn": "PRN12345",
-                "name": "Jane Smith",
-                "panel": "H",
-                "images": images
-            }
+                "username": "t",
+                "password": "p",
+                "name": "T",
+                "email_id": "t@t.com",
+                "school": "S",
+                "department": "D",
+                "mob": "1",
+            },
         )
-        
-        # Verify: 400 error returned
-        assert response.status_code == status.HTTP_400_BAD_REQUEST
-        assert "Failed to decode image" in response.json()["detail"]
-    
-    @patch('admin.get_face_model')
-    @patch('admin.incremental_train')
-    @patch('admin.get_db_connection')
-    def test_enrollment_associates_student_with_panel(self, mock_get_db_connection, mock_incremental_train, mock_get_face_model):
-        """
-        Test that student is associated with exactly one panel.
-        Requirements: 6.7
-        """
-        # Setup: Mock database
-        mock_connection = MagicMock()
-        mock_cursor = MagicMock()
-        mock_connection.cursor.return_value = mock_cursor
-        mock_get_db_connection.return_value = mock_connection
-        mock_cursor.fetchone.return_value = None
-        
-        # Mock face model
-        mock_face_model = MagicMock()
-        mock_get_face_model.return_value = mock_face_model
-        
-        # Create test images
-        import base64
-        from PIL import Image
-        from io import BytesIO
-        
-        test_image = Image.new('RGB', (1, 1), color='red')
-        buffer = BytesIO()
-        test_image.save(buffer, format='PNG')
-        base64_image = base64.b64encode(buffer.getvalue()).decode('utf-8')
-        images = [base64_image] * 25
-        
-        # Execute: Enroll student with specific panel
-        test_panel = "I"
-        response = client.post("/admin/enroll-student",
+        assert response.status_code == status.HTTP_403_FORBIDDEN
+
+
+# ---------------------------------------------------------------------------
+# GET /admin/lectures
+# ---------------------------------------------------------------------------
+
+class TestGetAllLecturesEndpoint:
+    """Tests for GET /admin/lectures."""
+
+    @patch("admin.execute_query")
+    def test_get_lectures_returns_list(self, mock_query):
+        """Should return a list of lecture dicts with username field."""
+        row = MagicMock()
+        row.lec_id = 1
+        row.lec_name = "DS"
+        row.panel = "H"
+        row.year = "FY"
+        row.specialisation = "CSE"
+        row.course_code = "CS201"
+        row.lecture_datetime = "2024-01-15 10:00:00"
+        row.attendance_status = "N"
+        row.lecorlab = "lec"
+        row.username = "teacher1"
+        mock_query.return_value = [row]
+
+        response = client.get(
+            "/admin/lectures",
             headers={"X-Privilege-Level": "2"},
-            json={
-                "prn": "PRN99999",
-                "name": "Test Student",
-                "panel": test_panel,
-                "images": images
-            }
         )
-        
-        # Verify: Success
-        assert response.status_code == status.HTTP_201_CREATED
-        
-        # Verify: Panel is in INSERT parameters
-        insert_call = mock_cursor.execute.call_args_list[1]
-        assert test_panel in insert_call[0][1]
+
+        assert response.status_code == status.HTTP_200_OK
+        data = response.json()
+        assert isinstance(data, list)
+        assert len(data) == 1
+        assert data[0]["username"] == "teacher1"
+        assert data[0]["lec_name"] == "DS"
+
+    @patch("admin.execute_query")
+    def test_get_lectures_empty_returns_empty_list(self, mock_query):
+        """Empty table should return []."""
+        mock_query.return_value = []
+
+        response = client.get(
+            "/admin/lectures",
+            headers={"X-Privilege-Level": "2"},
+        )
+
+        assert response.status_code == status.HTTP_200_OK
+        assert response.json() == []
+
+    def test_get_lectures_teacher_privilege_returns_403(self):
+        """Privilege level 3 must not access admin lectures."""
+        response = client.get(
+            "/admin/lectures",
+            headers={"X-Privilege-Level": "3"},
+        )
+        assert response.status_code == status.HTTP_403_FORBIDDEN
+
+
+# ---------------------------------------------------------------------------
+# GET /admin/attendance-analytics
+# ---------------------------------------------------------------------------
+
+class TestAttendanceAnalyticsEndpoint:
+    """Tests for GET /admin/attendance-analytics."""
+
+    @patch("admin.execute_query")
+    def test_analytics_no_matching_lectures(self, mock_query):
+        """No matching lectures should return zero-count response."""
+        mock_query.return_value = []  # no lectures found
+
+        response = client.get(
+            "/admin/attendance-analytics?course_code=NONE&panel=Z",
+            headers={"X-Privilege-Level": "2"},
+        )
+
+        assert response.status_code == status.HTTP_200_OK
+        data = response.json()
+        assert data["totalLectures"] == 0
+        assert data["students"] == []
+
+    @patch("admin.execute_query")
+    def test_analytics_returns_student_breakdown(self, mock_query):
+        """Should return per-student present/absent counts."""
+        # Call 1: lecture rows
+        lec_row = MagicMock()
+        lec_row.lec_id = 1
+        lec_row.lec_name = "DS"
+        lec_row.panel = "H"
+        lec_row.course_code = "CS201"
+
+        # Call 2: student rows
+        stu_row = MagicMock()
+        stu_row.prn = "PRN001"
+        stu_row.name = "Alice"
+
+        # Call 3: attendance rows
+        att_row = MagicMock()
+        att_row.prn = "PRN001"
+        att_row.present_count = 1
+
+        mock_query.side_effect = [[lec_row], [stu_row], [att_row]]
+
+        response = client.get(
+            "/admin/attendance-analytics?course_code=CS201&panel=H",
+            headers={"X-Privilege-Level": "2"},
+        )
+
+        assert response.status_code == status.HTTP_200_OK
+        data = response.json()
+        assert data["totalLectures"] == 1
+        assert len(data["students"]) == 1
+        assert data["students"][0]["prn"] == "PRN001"
+        assert data["students"][0]["present"] == 1
+
+    def test_analytics_teacher_privilege_returns_403(self):
+        """Privilege level 3 must not access analytics."""
+        response = client.get(
+            "/admin/attendance-analytics",
+            headers={"X-Privilege-Level": "3"},
+        )
+        assert response.status_code == status.HTTP_403_FORBIDDEN
+
+
+if __name__ == "__main__":
+    pytest.main([__file__, "-v"])

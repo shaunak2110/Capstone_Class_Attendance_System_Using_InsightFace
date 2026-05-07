@@ -8,8 +8,8 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { CheckCircle, ArrowLeft, AlertTriangle, Download } from 'lucide-react';
-import { finalizeAttendance, downloadCsv, getEnrolledStudents, resolveFaces } from '@/services/api';
+import { CheckCircle, ArrowLeft, AlertTriangle, Download, Search, UserCheck } from 'lucide-react';
+import { finalizeAttendance, downloadCsv, getEnrolledStudents, resolveFaces, getAllStudents } from '@/services/api';
 
 export default function Results() {
   const navigate = useNavigate();
@@ -28,6 +28,12 @@ export default function Results() {
   // Dialog state
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [selectedStudent, setSelectedStudent] = useState(null);
+  const [dialogTab, setDialogTab] = useState('existing'); // 'existing' | 'new'
+  const [allStudents, setAllStudents] = useState([]);
+  const [studentsLoadingDialog, setStudentsLoadingDialog] = useState(false);
+  const [studentSearch, setStudentSearch] = useState('');
+  const [selectedExistingPrn, setSelectedExistingPrn] = useState('');
+  const [dialogError, setDialogError] = useState('');
 
   useEffect(() => {
     if (!state) {
@@ -110,7 +116,17 @@ export default function Results() {
   const handleUnknown = (student) => {
     setSelectedStudent(student);
     setEnrollForm({ prn: '', name: '', year: '', course: '', specialisation: '', rollno: '', panel: '' });
+    setDialogTab('existing');
+    setStudentSearch('');
+    setSelectedExistingPrn('');
+    setDialogError('');
     setIsDialogOpen(true);
+    // Load all students after opening dialog
+    setStudentsLoadingDialog(true);
+    getAllStudents()
+      .then(data => setAllStudents(data || []))
+      .catch(() => setDialogError('Could not load student list. Check your connection.'))
+      .finally(() => setStudentsLoadingDialog(false));
   };
 
   const handleReject = async (student) => {
@@ -128,13 +144,16 @@ export default function Results() {
 
   const handleEnrollSubmit = async (e) => {
     e.preventDefault();
+    setDialogError('');
     try {
+      // action='new' creates the student AND stores the face crop as an embedding
+      // image is sent as fallback in case the server cache was cleared (e.g. after restart)
       await resolveFaces(lecId, [{
         face_id: selectedStudent.face_id,
         action: 'new',
+        image: selectedStudent.image,  // base64 fallback
         ...enrollForm
       }]);
-      // Mutate this row structurally into a localized student format instantly
       setData(prev => prev.map(s => {
         if (s.prn === selectedStudent.prn) {
           return {
@@ -150,7 +169,39 @@ export default function Results() {
       }));
       setIsDialogOpen(false);
     } catch (err) {
-      setError(err?.response?.data?.detail || 'Failed to submit form');
+      setDialogError(err?.response?.data?.detail || 'Failed to register student. Please try again.');
+    }
+  };
+
+  const handleExistingSubmit = async () => {
+    if (!selectedExistingPrn) return;
+    setDialogError('');
+    try {
+      // action='existing' marks present AND stores the face crop as an incremental embedding
+      // image is sent as fallback in case the server cache was cleared (e.g. after restart)
+      await resolveFaces(lecId, [{
+        face_id: selectedStudent.face_id,
+        action: 'existing',
+        prn: selectedExistingPrn,
+        image: selectedStudent.image  // base64 fallback
+      }]);
+      const matched = allStudents.find(s => s.prn === selectedExistingPrn);
+      setData(prev => prev.map(s => {
+        if (s.prn === selectedStudent.prn) {
+          return {
+            prn: selectedExistingPrn,
+            name: matched?.name || selectedExistingPrn,
+            rollno: matched?.rollno || 'N/A',
+            confidence: '100',
+            status: 'Present',
+            isUnidentified: false
+          };
+        }
+        return s;
+      }));
+      setIsDialogOpen(false);
+    } catch (err) {
+      setDialogError(err?.response?.data?.detail || 'Failed to link face to student. Please try again.');
     }
   };
 
@@ -207,13 +258,14 @@ export default function Results() {
                 onClick={async () => {
                   try {
                     const blob = await downloadCsv(lecId);
-                    const url = window.URL.createObjectURL(new Blob([blob]));
+                    const url = window.URL.createObjectURL(blob);
                     const link = document.createElement('a');
                     link.href = url;
                     link.setAttribute('download', `lec-${lecId}-attendance.csv`);
                     document.body.appendChild(link);
                     link.click();
                     link.parentNode.removeChild(link);
+                    window.URL.revokeObjectURL(url);
                   } catch (e) {
                     setError('Failed to download CSV');
                   }
@@ -381,48 +433,147 @@ export default function Results() {
           </CardContent>
         </Card>
 
-        {/* Correction Dialog */}
+        {/* Correction Dialog — tabbed: select existing student OR register new */}
         <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-          <DialogContent className="sm:max-w-[500px] bg-slate-50 dark:bg-[#0f1117] border border-slate-300 dark:border-white/10 text-slate-800 dark:text-slate-200 shadow-2xl">
+          <DialogContent className="sm:max-w-[560px] bg-slate-50 dark:bg-[#0f1117] border border-slate-300 dark:border-white/10 text-slate-800 dark:text-slate-200 shadow-2xl">
             <DialogHeader>
-              <DialogTitle className="text-slate-900 dark:text-white text-xl">Manage Student Enrollment</DialogTitle>
+              <DialogTitle className="text-slate-900 dark:text-white text-xl">Identify Unknown Face</DialogTitle>
             </DialogHeader>
-            <div className="py-4">
-              <p className="text-sm text-slate-600 dark:text-slate-400 mb-5">You are registering an unidentified face. Fill out the registry form to mark present.</p>
-              <form onSubmit={handleEnrollSubmit} className="grid grid-cols-2 gap-4">
-                <div className="col-span-2 space-y-1.5">
-                  <Label className="text-slate-700 dark:text-slate-300 text-xs uppercase tracking-wider">Student Full Name</Label>
-                  <Input required value={enrollForm.name} onChange={e => setEnrollForm({ ...enrollForm, name: e.target.value })} placeholder="Jane Doe" className="bg-white dark:bg-black/20 border-slate-300 dark:border-white/10 text-slate-900 dark:text-white focus-visible:ring-indigo-500 placeholder:text-slate-400 dark:placeholder:text-slate-600 h-10" />
+
+            {/* Tab switcher */}
+            <div className="flex p-1 bg-slate-100 dark:bg-black/40 rounded-lg border border-slate-200 dark:border-white/10 mt-1">
+              <button
+                onClick={() => setDialogTab('existing')}
+                className={`flex-1 flex items-center justify-center gap-2 py-2 text-sm font-semibold rounded-md transition-all ${dialogTab === 'existing' ? 'bg-indigo-600 text-white shadow' : 'text-slate-500 hover:text-slate-700 dark:hover:text-slate-300'}`}
+              >
+                <UserCheck className="h-4 w-4" /> Select Existing Student
+              </button>
+              <button
+                onClick={() => setDialogTab('new')}
+                className={`flex-1 flex items-center justify-center gap-2 py-2 text-sm font-semibold rounded-md transition-all ${dialogTab === 'new' ? 'bg-purple-600 text-white shadow' : 'text-slate-500 hover:text-slate-700 dark:hover:text-slate-300'}`}
+              >
+                + Register New Student
+              </button>
+            </div>
+
+            <div className="py-2">
+              {/* Dialog-level error */}
+              {dialogError && (
+                <div className="mb-3 p-3 bg-red-500/10 border border-red-500/20 rounded-lg text-red-400 text-sm">
+                  {dialogError}
                 </div>
-                <div className="space-y-1.5">
-                  <Label className="text-slate-700 dark:text-slate-300 text-xs uppercase tracking-wider">PRN</Label>
-                  <Input required value={enrollForm.prn} onChange={e => setEnrollForm({ ...enrollForm, prn: e.target.value })} placeholder="Unique ID" className="bg-white dark:bg-black/20 border-slate-300 dark:border-white/10 text-slate-900 dark:text-white focus-visible:ring-indigo-500 placeholder:text-slate-400 dark:placeholder:text-slate-600 h-10" />
+              )}
+
+              {/* ── TAB: Select Existing Student ── */}
+              {dialogTab === 'existing' && (
+                <div className="space-y-3">
+                  <p className="text-xs text-slate-500 dark:text-slate-400">
+                    Select an already-enrolled student. Their face crop will be saved as a new embedding so the system recognises them automatically next time.
+                  </p>
+                  <div className="relative">
+                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+                    <Input
+                      placeholder="Search by name or PRN..."
+                      value={studentSearch}
+                      onChange={e => setStudentSearch(e.target.value)}
+                      className="pl-9 bg-white dark:bg-black/20 border-slate-300 dark:border-white/10 text-slate-900 dark:text-white h-10"
+                    />
+                  </div>
+                  <div className="max-h-[220px] overflow-y-auto rounded-lg border border-slate-200 dark:border-white/10">
+                    {studentsLoadingDialog ? (
+                      <div className="flex justify-center items-center py-8">
+                        <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-indigo-500"></div>
+                        <span className="ml-3 text-sm text-slate-500">Loading students...</span>
+                      </div>
+                    ) : allStudents.filter(s =>
+                        s.name.toLowerCase().includes(studentSearch.toLowerCase()) ||
+                        s.prn.toLowerCase().includes(studentSearch.toLowerCase())
+                      ).length === 0 ? (
+                      <p className="text-center text-slate-500 py-6 text-sm">
+                        {allStudents.length === 0 ? 'No students enrolled in the system yet.' : 'No students match your search.'}
+                      </p>
+                    ) : (
+                      allStudents
+                        .filter(s =>
+                          s.name.toLowerCase().includes(studentSearch.toLowerCase()) ||
+                          s.prn.toLowerCase().includes(studentSearch.toLowerCase())
+                        )
+                        .map(s => (
+                          <button
+                            key={s.prn}
+                            type="button"
+                            onClick={() => setSelectedExistingPrn(s.prn)}
+                            className={`w-full text-left px-4 py-3 flex items-center justify-between transition-colors border-b border-slate-100 dark:border-white/5 last:border-0 ${
+                              selectedExistingPrn === s.prn
+                                ? 'bg-indigo-500/10 text-indigo-400'
+                                : 'hover:bg-slate-100 dark:hover:bg-white/5 text-slate-700 dark:text-slate-300'
+                            }`}
+                          >
+                            <div>
+                              <div className="font-semibold text-sm">{s.name}</div>
+                              <div className="text-xs text-slate-500 font-mono">{s.prn} — Panel {s.panel}</div>
+                            </div>
+                            {selectedExistingPrn === s.prn && <CheckCircle className="h-4 w-4 text-indigo-400 shrink-0" />}
+                          </button>
+                        ))
+                    )}
+                  </div>
+                  <div className="flex gap-3 pt-1">
+                    <Button type="button" variant="outline" className="flex-1 bg-white dark:bg-white/5 text-slate-900 dark:text-white border-slate-300 dark:border-white/10" onClick={() => setIsDialogOpen(false)}>Cancel</Button>
+                    <Button
+                      type="button"
+                      disabled={!selectedExistingPrn || studentsLoadingDialog}
+                      onClick={handleExistingSubmit}
+                      className="flex-1 bg-indigo-600 hover:bg-indigo-500 text-white border border-indigo-500/50 disabled:opacity-40"
+                    >
+                      <UserCheck className="mr-2 h-4 w-4" /> Mark Present & Save Face
+                    </Button>
+                  </div>
                 </div>
-                <div className="space-y-1.5">
-                  <Label className="text-slate-700 dark:text-slate-300 text-xs uppercase tracking-wider">Rollno</Label>
-                  <Input required value={enrollForm.rollno} onChange={e => setEnrollForm({ ...enrollForm, rollno: e.target.value })} placeholder="Roll Number" className="bg-white dark:bg-black/20 border-slate-300 dark:border-white/10 text-slate-900 dark:text-white focus-visible:ring-indigo-500 placeholder:text-slate-400 dark:placeholder:text-slate-600 h-10" />
+              )}
+
+              {/* ── TAB: Register New Student ── */}
+              {dialogTab === 'new' && (
+                <div>
+                  <p className="text-xs text-slate-500 dark:text-slate-400 mb-3">
+                    Register a brand-new student. Their face crop will be saved as their first embedding.
+                  </p>
+                  <form onSubmit={handleEnrollSubmit} className="grid grid-cols-2 gap-3">
+                    <div className="col-span-2 space-y-1">
+                      <Label className="text-slate-700 dark:text-slate-300 text-xs uppercase tracking-wider">Full Name</Label>
+                      <Input required value={enrollForm.name} onChange={e => setEnrollForm({ ...enrollForm, name: e.target.value })} placeholder="Jane Doe" className="bg-white dark:bg-black/20 border-slate-300 dark:border-white/10 text-slate-900 dark:text-white h-9" />
+                    </div>
+                    <div className="space-y-1">
+                      <Label className="text-slate-700 dark:text-slate-300 text-xs uppercase tracking-wider">PRN</Label>
+                      <Input required value={enrollForm.prn} onChange={e => setEnrollForm({ ...enrollForm, prn: e.target.value })} placeholder="Unique ID" className="bg-white dark:bg-black/20 border-slate-300 dark:border-white/10 text-slate-900 dark:text-white h-9" />
+                    </div>
+                    <div className="space-y-1">
+                      <Label className="text-slate-700 dark:text-slate-300 text-xs uppercase tracking-wider">Roll No</Label>
+                      <Input required value={enrollForm.rollno} onChange={e => setEnrollForm({ ...enrollForm, rollno: e.target.value })} placeholder="Roll Number" className="bg-white dark:bg-black/20 border-slate-300 dark:border-white/10 text-slate-900 dark:text-white h-9" />
+                    </div>
+                    <div className="space-y-1">
+                      <Label className="text-slate-700 dark:text-slate-300 text-xs uppercase tracking-wider">Year</Label>
+                      <Input required value={enrollForm.year} onChange={e => setEnrollForm({ ...enrollForm, year: e.target.value })} placeholder="FY" className="bg-white dark:bg-black/20 border-slate-300 dark:border-white/10 text-slate-900 dark:text-white h-9" />
+                    </div>
+                    <div className="space-y-1">
+                      <Label className="text-slate-700 dark:text-slate-300 text-xs uppercase tracking-wider">Course</Label>
+                      <Input required value={enrollForm.course} onChange={e => setEnrollForm({ ...enrollForm, course: e.target.value })} placeholder="B.Tech" className="bg-white dark:bg-black/20 border-slate-300 dark:border-white/10 text-slate-900 dark:text-white h-9" />
+                    </div>
+                    <div className="space-y-1">
+                      <Label className="text-slate-700 dark:text-slate-300 text-xs uppercase tracking-wider">Specialisation</Label>
+                      <Input required value={enrollForm.specialisation} onChange={e => setEnrollForm({ ...enrollForm, specialisation: e.target.value })} placeholder="CSE" className="bg-white dark:bg-black/20 border-slate-300 dark:border-white/10 text-slate-900 dark:text-white h-9" />
+                    </div>
+                    <div className="space-y-1">
+                      <Label className="text-slate-700 dark:text-slate-300 text-xs uppercase tracking-wider">Panel</Label>
+                      <Input required value={enrollForm.panel} onChange={e => setEnrollForm({ ...enrollForm, panel: e.target.value })} placeholder="H" className="bg-white dark:bg-black/20 border-slate-300 dark:border-white/10 text-slate-900 dark:text-white h-9" />
+                    </div>
+                    <div className="col-span-2 flex gap-3 pt-2">
+                      <Button type="button" variant="outline" className="flex-1 bg-white dark:bg-white/5 text-slate-900 dark:text-white border-slate-300 dark:border-white/10" onClick={() => setIsDialogOpen(false)}>Cancel</Button>
+                      <Button type="submit" className="flex-1 bg-purple-600 hover:bg-purple-500 text-white border border-purple-500/50">Submit & Mark Present</Button>
+                    </div>
+                  </form>
                 </div>
-                <div className="space-y-1.5">
-                  <Label className="text-slate-700 dark:text-slate-300 text-xs uppercase tracking-wider">Year</Label>
-                  <Input required value={enrollForm.year} onChange={e => setEnrollForm({ ...enrollForm, year: e.target.value })} placeholder="1st Year" className="bg-white dark:bg-black/20 border-slate-300 dark:border-white/10 text-slate-900 dark:text-white focus-visible:ring-indigo-500 placeholder:text-slate-400 dark:placeholder:text-slate-600 h-10" />
-                </div>
-                <div className="space-y-1.5">
-                  <Label className="text-slate-700 dark:text-slate-300 text-xs uppercase tracking-wider">Course</Label>
-                  <Input required value={enrollForm.course} onChange={e => setEnrollForm({ ...enrollForm, course: e.target.value })} placeholder="B.Tech" className="bg-white dark:bg-black/20 border-slate-300 dark:border-white/10 text-slate-900 dark:text-white focus-visible:ring-indigo-500 placeholder:text-slate-400 dark:placeholder:text-slate-600 h-10" />
-                </div>
-                <div className="space-y-1.5">
-                  <Label className="text-slate-700 dark:text-slate-300 text-xs uppercase tracking-wider">Specialisation</Label>
-                  <Input required value={enrollForm.specialisation} onChange={e => setEnrollForm({ ...enrollForm, specialisation: e.target.value })} placeholder="Computer Science" className="bg-white dark:bg-black/20 border-slate-300 dark:border-white/10 text-slate-900 dark:text-white focus-visible:ring-indigo-500 placeholder:text-slate-400 dark:placeholder:text-slate-600 h-10" />
-                </div>
-                <div className="space-y-1.5">
-                  <Label className="text-slate-700 dark:text-slate-300 text-xs uppercase tracking-wider">Panel</Label>
-                  <Input required value={enrollForm.panel} onChange={e => setEnrollForm({ ...enrollForm, panel: e.target.value })} placeholder="Panel A" className="bg-white dark:bg-black/20 border-slate-300 dark:border-white/10 text-slate-900 dark:text-white focus-visible:ring-indigo-500 placeholder:text-slate-400 dark:placeholder:text-slate-600 h-10" />
-                </div>
-                <div className="col-span-2 mt-5 flex gap-4">
-                  <Button type="button" variant="outline" className="flex-1 bg-white dark:bg-white/5 hover:bg-slate-200 dark:hover:bg-white/10 text-slate-900 dark:text-white border-slate-300 dark:border-white/10 border" onClick={() => setIsDialogOpen(false)}>Cancel</Button>
-                  <Button type="submit" className="flex-1 bg-indigo-600 hover:bg-indigo-500 text-slate-900 dark:text-white border border-indigo-500/50 shadow-[0_0_15px_rgba(99,102,241,0.2)]">Submit & Mark Present</Button>
-                </div>
-              </form>
+              )}
             </div>
           </DialogContent>
         </Dialog>

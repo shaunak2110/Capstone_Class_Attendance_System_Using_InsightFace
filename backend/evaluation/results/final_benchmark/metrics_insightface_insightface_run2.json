@@ -1,0 +1,44 @@
+{
+  "experiment_id": "insightface_insightface_run2",
+  "detector": "insightface",
+  "recognizer": "insightface",
+  "run": 2,
+  "seed": 44,
+  "threshold": 0.5,
+  "detection": {
+    "detection_rate": 0.990196,
+    "precision": 0.852941,
+    "recall": 0.990196,
+    "tp": 87,
+    "fp": 66,
+    "fn": 1,
+    "total_images": 102,
+    "detected_images": 101,
+    "gt_available": false,
+    "iou_threshold": 0.5
+  },
+  "recognition": {
+    "accuracy": 0.831683,
+    "far": null,
+    "frr": 0.176471,
+    "tp": 84,
+    "fp": 0,
+    "tn": 0,
+    "fn": 18,
+    "missed_detections": 1,
+    "total_probes": 102,
+    "detected_probes": 101,
+    "genuine_attempts": 102,
+    "impostor_attempts": 0,
+    "threshold": 0.5,
+    "open_set_detection_rate": null,
+    "false_alarm_rate": null
+  },
+  "eer": {
+    "eer_threshold": 0.0,
+    "eer": 0.088235,
+    "accuracy_at_eer": 0.831683,
+    "far_at_eer": null,
+    "frr_at_eer": 0.176471
+  }
+}

@@ -1,0 +1,4 @@
+# file: C:\CapstoneVer3\backend\database.py
+# hypothesis_version: 6.151.9
+
+['DATABASE', 'DB_CONNECTION_STRING', 'DRIVER', 'SERVER']

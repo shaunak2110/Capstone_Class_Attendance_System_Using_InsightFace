@@ -1,0 +1,43 @@
+[2026-05-07 14:14:01] INFO ============================================================
+[2026-05-07 14:14:01] INFO Face Recognition Evaluation Pipeline
+[2026-05-07 14:14:01] INFO ============================================================
+[2026-05-07 14:14:01] INFO Python:      3.11.0
+[2026-05-07 14:14:01] INFO Platform:    Windows-10-10.0.26200-SP0
+[2026-05-07 14:14:01] INFO Dataset:     C:\CapstoneVer3\backend\evaluation\dataset\raw
+[2026-05-07 14:14:01] INFO Gallery:     70%
+[2026-05-07 14:14:01] INFO Seed:        42
+[2026-05-07 14:14:01] INFO Runs:        1
+[2026-05-07 14:14:01] INFO Open-set:    0%
+[2026-05-07 14:14:01] INFO Threshold:   0.85
+[2026-05-07 14:14:01] INFO Detectors:   ['insightface']
+[2026-05-07 14:14:01] INFO Recognizers: ['insightface']
+[2026-05-07 14:14:01] INFO Output:      C:\CapstoneVer3\backend\evaluation\results\experiments\20260507_141401
+[2026-05-07 14:14:01] INFO ============================================================
+[2026-05-07 14:14:01] INFO opencv:      4.13.0
+[2026-05-07 14:14:04] INFO insightface: 0.7.3
+[2026-05-07 14:14:04] INFO numpy:       2.4.4
+[2026-05-07 14:14:06] INFO Loaded detector: insightface
+[2026-05-07 14:14:09] INFO Loaded recognizer: insightface
+[2026-05-07 14:14:09] INFO Starting 1 experiments (1 detectors × 1 recognizers × 1 runs)
+[2026-05-07 14:14:09] INFO ============================================================
+[2026-05-07 14:14:09] INFO RUN 1/1  (seed=42)
+[2026-05-07 14:14:09] INFO ============================================================
+[2026-05-07 14:14:09] INFO Split: 4 gallery identities, 4 probe identities, 0 open-set identities
+[2026-05-07 14:14:09] INFO [1/1] Experiment: insightface_insightface_run0
+[2026-05-07 14:14:09] INFO   Gallery: 233 crops across 4 identities | Probe: 102 images
+[2026-05-07 14:20:44] INFO   Detection rate: 0.9902 | Accuracy: 0.1287 | FAR: N/A | FRR: 0.9412 | EER: 0.4363
+[2026-05-07 14:20:44] INFO   Timing: det=56.7±4.1ms  rec=319.5±376.5ms  total=376.1±377.1ms
+[2026-05-07 14:20:44] DEBUG   Saved predictions: predictions_insightface_insightface_run0.csv
+[2026-05-07 14:20:44] DEBUG   Saved metrics: metrics_insightface_insightface_run0.json
+[2026-05-07 14:20:44] DEBUG   Saved timing: timing_insightface_insightface_run0.json
+[2026-05-07 14:20:44] INFO [1/1] insightface_insightface_run0 completed in 394.7s
+[2026-05-07 14:20:44] INFO ============================================================
+[2026-05-07 14:20:44] INFO All experiments complete. Total wall time: 394.8s (6.6 min)
+[2026-05-07 14:20:44] INFO Summary saved: summary.json
+[2026-05-07 14:20:44] INFO --------------------------------------------------------------------------------------------
+[2026-05-07 14:20:44] INFO 
+Detector        Recognizer      Run  DetRate  Accuracy      FAR      FRR      EER   TotalMs
+[2026-05-07 14:20:44] INFO --------------------------------------------------------------------------------------------
+[2026-05-07 14:20:44] INFO insightface     insightface       0   0.9902    0.1287    N/A     0.9412   0.4363     376.1
+[2026-05-07 14:20:44] INFO --------------------------------------------------------------------------------------------
+[2026-05-07 14:20:44] INFO Results saved to: C:\CapstoneVer3\backend\evaluation\results\experiments\20260507_141401

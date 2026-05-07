@@ -1,0 +1,44 @@
+{
+  "experiment_id": "haarcascade_insightface_run1",
+  "detector": "haarcascade",
+  "recognizer": "insightface",
+  "run": 1,
+  "seed": 43,
+  "threshold": 0.5,
+  "detection": {
+    "detection_rate": 0.666667,
+    "precision": 0.5,
+    "recall": 0.666667,
+    "tp": 51,
+    "fp": 19,
+    "fn": 34,
+    "total_images": 102,
+    "detected_images": 68,
+    "gt_available": false,
+    "iou_threshold": 0.5
+  },
+  "recognition": {
+    "accuracy": 0.941176,
+    "far": null,
+    "frr": 0.382353,
+    "tp": 63,
+    "fp": 0,
+    "tn": 0,
+    "fn": 39,
+    "missed_detections": 34,
+    "total_probes": 102,
+    "detected_probes": 68,
+    "genuine_attempts": 102,
+    "impostor_attempts": 0,
+    "threshold": 0.5,
+    "open_set_detection_rate": null,
+    "false_alarm_rate": null
+  },
+  "eer": {
+    "eer_threshold": 0.0,
+    "eer": 0.186275,
+    "accuracy_at_eer": 0.941176,
+    "far_at_eer": null,
+    "frr_at_eer": 0.372549
+  }
+}
