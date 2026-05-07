@@ -1,66 +1,89 @@
 """
-Database connection management module (Windows Authentication version)
+Database connection management module (pymssql / Azure SQL).
+
+Uses pymssql so we don't need the Microsoft ODBC driver installed at the OS
+level — works on plain Linux containers (Render Python runtime).
 """
 
 import os
-import pyodbc
+import re
+import pymssql
 from typing import Optional, List, Tuple, Any
 from dotenv import load_dotenv
 
-# Load environment variables
 load_dotenv()
 
 
-def get_db_connection() -> pyodbc.Connection:
+def _parse_connection_string(conn_str: str) -> dict:
     """
-    Connect to SQL Server.
+    Parse a SQL Server-style connection string (DRIVER=...;SERVER=...;DATABASE=...;UID=...;PWD=...)
+    into pymssql.connect kwargs.
 
-    If DB_CONNECTION_STRING is set, use it directly as the pyodbc connection
-    string (supports Azure SQL and any other SQL Server variant).
-
-    Otherwise fall back to Windows Authentication for local development,
-    reading SERVER, DATABASE, and DRIVER from the environment.
+    Accepts both ODBC-style ("SERVER=host,1433") and host-only forms.
     """
+    parts = {}
+    for piece in conn_str.split(";"):
+        piece = piece.strip()
+        if not piece or "=" not in piece:
+            continue
+        key, _, val = piece.partition("=")
+        parts[key.strip().lower()] = val.strip()
 
-    conn_str = os.getenv('DB_CONNECTION_STRING')
+    server = parts.get("server", "")
+    port = None
+    if "," in server:
+        server, port_str = server.rsplit(",", 1)
+        port = int(port_str)
+    server = re.sub(r"^tcp:", "", server)
+
+    kwargs = {
+        "server": server,
+        "user": parts.get("uid") or parts.get("user id") or parts.get("user"),
+        "password": parts.get("pwd") or parts.get("password"),
+        "database": parts.get("database") or parts.get("initial catalog"),
+    }
+    if port:
+        kwargs["port"] = port
+    return {k: v for k, v in kwargs.items() if v is not None}
+
+
+def get_db_connection():
+    """
+    Connect to SQL Server / Azure SQL via pymssql.
+
+    Preferred: DB_CONNECTION_STRING (ODBC-style or pymssql-friendly).
+    Fallback: SERVER, DATABASE, DB_USER, DB_PASSWORD env vars (cloud).
+    """
+    conn_str = os.getenv("DB_CONNECTION_STRING")
     if conn_str:
         try:
-            return pyodbc.connect(conn_str)
-        except pyodbc.Error as e:
-            raise pyodbc.Error(
+            return pymssql.connect(**_parse_connection_string(conn_str))
+        except pymssql.Error as e:
+            raise pymssql.Error(
                 f"Failed to connect using DB_CONNECTION_STRING. Error: {str(e)}"
             )
 
-    # Fallback: Windows Authentication for local development
-    server = os.getenv('SERVER')
-    database = os.getenv('DATABASE')
-    driver = os.getenv('DRIVER', '{ODBC Driver 17 for SQL Server}')
+    server = os.getenv("SERVER")
+    database = os.getenv("DATABASE")
+    user = os.getenv("DB_USER")
+    password = os.getenv("DB_PASSWORD")
 
-    missing = []
-    if not server:
-        missing.append("SERVER")
-    if not database:
-        missing.append("DATABASE")
-
+    missing = [k for k, v in {
+        "SERVER": server, "DATABASE": database,
+        "DB_USER": user, "DB_PASSWORD": password,
+    }.items() if not v]
     if missing:
         raise ValueError(
             f"Missing required database parameters: {', '.join(missing)}. "
-            f"Check your .env file."
+            f"Set DB_CONNECTION_STRING or SERVER/DATABASE/DB_USER/DB_PASSWORD."
         )
 
-    # Windows Authentication connection string
-    connection_string = (
-        f"DRIVER={driver};"
-        f"SERVER={server};"
-        f"DATABASE={database};"
-        "Trusted_Connection=yes;"
-    )
-
     try:
-        return pyodbc.connect(connection_string)
-
-    except pyodbc.Error as e:
-        raise pyodbc.Error(
+        return pymssql.connect(
+            server=server, user=user, password=password, database=database
+        )
+    except pymssql.Error as e:
+        raise pymssql.Error(
             f"Failed to connect to database '{database}' on server '{server}'. "
             f"Error: {str(e)}"
         )
@@ -69,38 +92,26 @@ def get_db_connection() -> pyodbc.Connection:
 def execute_query(
     query: str,
     params: Optional[Tuple[Any, ...]] = None,
-    fetch: bool = True
-) -> Optional[List[pyodbc.Row]]:
-    """
-    Execute SQL query safely
-    """
-
+    fetch: bool = True,
+) -> Optional[List[Tuple[Any, ...]]]:
+    """Execute SQL query safely. Use %s for parameter placeholders (pymssql paramstyle)."""
     connection = None
     cursor = None
-
     try:
         connection = get_db_connection()
         cursor = connection.cursor()
-
         if params:
             cursor.execute(query, params)
         else:
             cursor.execute(query)
-
         if fetch:
             return cursor.fetchall()
-        else:
-            connection.commit()
-            return None
-
-    except pyodbc.Error as e:
+        connection.commit()
+        return None
+    except pymssql.Error as e:
         if connection:
             connection.rollback()
-
-        raise pyodbc.Error(
-            f"Query failed: {query[:100]}... | Error: {str(e)}"
-        )
-
+        raise pymssql.Error(f"Query failed: {query[:100]}... | Error: {str(e)}")
     finally:
         if cursor:
             cursor.close()

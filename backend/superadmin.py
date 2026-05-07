@@ -6,7 +6,7 @@ from fastapi import APIRouter, HTTPException, status, Depends
 from pydantic import BaseModel, EmailStr
 from typing import List, Optional
 import bcrypt
-import pyodbc
+import pymssql
 from database import execute_query, get_db_connection
 from dependencies import require_privilege
 
@@ -105,7 +105,7 @@ async def approve_privilege_request(
         cursor.execute("""
             SELECT request_id
             FROM Request_Master
-            WHERE request_id = ? AND user_id = ?
+            WHERE request_id = %s AND user_id = %s
         """, (request.request_id, request.user_id))
 
         if not cursor.fetchone():
@@ -115,13 +115,13 @@ async def approve_privilege_request(
         cursor.execute("""
             UPDATE Login_Master
             SET privilege_level = 2
-            WHERE user_id = ?
+            WHERE user_id = %s
         """, (request.user_id,))
 
         # Delete request
         cursor.execute("""
             DELETE FROM Request_Master
-            WHERE request_id = ?
+            WHERE request_id = %s
         """, (request.request_id,))
 
         connection.commit()
@@ -166,7 +166,7 @@ async def create_admin(
 
         # Check duplicate username
         cursor.execute("""
-            SELECT user_id FROM Login_Master WHERE username = ?
+            SELECT user_id FROM Login_Master WHERE username = %s
         """, (request.username,))
 
         if cursor.fetchone():
@@ -176,7 +176,7 @@ async def create_admin(
         insert_login_query = """
     INSERT INTO Login_Master (username, password_hash, privilege_level)
     OUTPUT INSERTED.user_id
-    VALUES (?, ?, 2)
+    VALUES (%s, %s, 2)
 """
 
         cursor.execute(insert_login_query, (request.username, password_hash))
@@ -185,7 +185,7 @@ async def create_admin(
         # Insert into User_Master
         cursor.execute("""
             INSERT INTO User_Master (user_id, name, email_id, school, department)
-            VALUES (?, ?, ?, ?, ?)
+            VALUES (%s, %s, %s, %s, %s)
         """, (
             user_id,
             request.name,
@@ -278,7 +278,7 @@ async def revoke_user(
 
         # Check user exists and is not a superadmin
         cursor.execute(
-            "SELECT privilege_level FROM Login_Master WHERE user_id = ?",
+            "SELECT privilege_level FROM Login_Master WHERE user_id = %s",
             (user_id,)
         )
         row = cursor.fetchone()
@@ -290,7 +290,7 @@ async def revoke_user(
             raise HTTPException(status_code=400, detail="User already has teacher-level access")
 
         cursor.execute(
-            "UPDATE Login_Master SET privilege_level = 3 WHERE user_id = ?",
+            "UPDATE Login_Master SET privilege_level = 3 WHERE user_id = %s",
             (user_id,)
         )
         connection.commit()

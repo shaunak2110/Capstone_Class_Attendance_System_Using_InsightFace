@@ -11,7 +11,7 @@ from fastapi import APIRouter, HTTPException, status
 from pydantic import BaseModel
 import bcrypt
 from typing import Optional
-import pyodbc
+import pymssql
 from database import execute_query
 
 
@@ -88,7 +88,7 @@ async def login(request: LoginRequest):
         query = """
             SELECT user_id, username, password_hash, privilege_level
             FROM Login_Master
-            WHERE username = ?
+            WHERE username = %s
         """
         results = execute_query(query, (request.username,), fetch=True)
         
@@ -134,7 +134,7 @@ async def login(request: LoginRequest):
         # Re-raise HTTP exceptions (401 errors)
         raise
         
-    except pyodbc.Error as e:
+    except pymssql.Error as e:
         # Database error
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,

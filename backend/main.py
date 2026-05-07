@@ -3,7 +3,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from fastapi.exceptions import RequestValidationError
 import logging
-import pyodbc
+import pymssql
 import os
 
 # Routers
@@ -29,16 +29,16 @@ app = FastAPI(
 # ERROR HANDLERS
 # ============================
 
-@app.exception_handler(pyodbc.IntegrityError)
-async def integrity_error_handler(request: Request, exc: pyodbc.IntegrityError):
+@app.exception_handler(pymssql.IntegrityError)
+async def integrity_error_handler(request: Request, exc: pymssql.IntegrityError):
     return JSONResponse(
         status_code=status.HTTP_409_CONFLICT,
         content={"error": "Conflict", "message": str(exc)}
     )
 
 
-@app.exception_handler(pyodbc.Error)
-async def database_error_handler(request: Request, exc: pyodbc.Error):
+@app.exception_handler(pymssql.Error)
+async def database_error_handler(request: Request, exc: pymssql.Error):
     return JSONResponse(
         status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
         content={"error": "Database Error", "message": str(exc)}

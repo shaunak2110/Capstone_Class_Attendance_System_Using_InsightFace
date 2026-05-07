@@ -145,7 +145,7 @@ def recognize_students(
     for prn, match in best_per_prn.items():
         try:
             rows = execute_query(
-                "SELECT name FROM Student_Master WHERE prn = ?",
+                "SELECT name FROM Student_Master WHERE prn = %s",
                 (prn,),
                 fetch=True,
             )

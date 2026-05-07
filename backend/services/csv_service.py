@@ -69,7 +69,7 @@ def generate_attendance_csv(lec_id: int) -> str:
     lecture_query = """
         SELECT lec_name, panel, lecture_datetime, user_id
         FROM Lecture_Master
-        WHERE lec_id = ?
+        WHERE lec_id = %s
     """
     lecture_results = execute_query(lecture_query, (lec_id,), fetch=True)
     
@@ -89,7 +89,7 @@ def generate_attendance_csv(lec_id: int) -> str:
     teacher_query = """
         SELECT name
         FROM User_Master
-        WHERE user_id = ?
+        WHERE user_id = %s
     """
     teacher_results = execute_query(teacher_query, (user_id,), fetch=True)
     
@@ -102,7 +102,7 @@ def generate_attendance_csv(lec_id: int) -> str:
     students_query = """
         SELECT prn, name
         FROM Student_Master
-        WHERE panel = ?
+        WHERE panel = %s
         ORDER BY prn
     """
     students_results = execute_query(students_query, (panel,), fetch=True)
@@ -114,7 +114,7 @@ def generate_attendance_csv(lec_id: int) -> str:
     attendance_query = """
         SELECT prn
         FROM Attendance_Record
-        WHERE lec_id = ? AND status = 'Present'
+        WHERE lec_id = %s AND status = 'Present'
     """
     attendance_results = execute_query(attendance_query, (lec_id,), fetch=True)
     

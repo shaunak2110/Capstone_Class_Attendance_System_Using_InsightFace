@@ -81,12 +81,12 @@ def enroll_student(prn: str, images: List[Union[str, np.ndarray]]) -> int:
     cursor = connection.cursor()
     try:
         cursor.execute(
-            "DELETE FROM Student_Embeddings WHERE prn = ?", (prn,)
+            "DELETE FROM Student_Embeddings WHERE prn = %s", (prn,)
         )
         for emb in embeddings:
             blob = InsightFaceEngine.embedding_to_bytes(emb)
             cursor.execute(
-                "INSERT INTO Student_Embeddings (prn, embedding) VALUES (?, ?)",
+                "INSERT INTO Student_Embeddings (prn, embedding) VALUES (%s, %s)",
                 (prn, blob),
             )
         connection.commit()
@@ -157,7 +157,7 @@ def incremental_enroll(prn: str, image: Union[str, np.ndarray]) -> bool:
         return False
 
     execute_query(
-        "INSERT INTO Student_Embeddings (prn, embedding) VALUES (?, ?)",
+        "INSERT INTO Student_Embeddings (prn, embedding) VALUES (%s, %s)",
         (prn, blob),
         fetch=False,
     )

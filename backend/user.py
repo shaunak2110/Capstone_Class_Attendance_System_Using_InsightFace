@@ -11,7 +11,7 @@ from fastapi import APIRouter, HTTPException, status, Depends
 from pydantic import BaseModel
 from typing import Optional, List
 import datetime as dt
-import pyodbc
+import pymssql
 from database import execute_query, get_db_connection
 from services import recognition_service, training_service, csv_service
 from model.inference import InferenceEngine
@@ -218,17 +218,17 @@ async def get_user_lectures(
             SELECT schedule_id, lec_name, course_code, lecorlab,
                    year, specialisation, panel, start_time
             FROM Lecture_Schedule
-            WHERE user_id = ?
-              AND day_of_week = ?
+            WHERE user_id = %s
+              AND day_of_week = %s
               AND is_active = 1
-              AND sem_start_date <= ?
-              AND sem_end_date   >= ?
+              AND sem_start_date <= %s
+              AND sem_end_date   >= %s
         """, (user_id, today_name, str(today), str(today)))
         today_schedules = cursor.fetchall()
 
         # Get teacher's school/department for Lecture_Master NOT NULL columns
         cursor.execute(
-            "SELECT school, department FROM User_Master WHERE user_id = ?",
+            "SELECT school, department FROM User_Master WHERE user_id = %s",
             (user_id,)
         )
         teacher_row = cursor.fetchone()
@@ -249,8 +249,8 @@ async def get_user_lectures(
             # Idempotency: only insert if this (schedule_id, date) doesn't exist yet
             cursor.execute("""
                 SELECT lec_id FROM Lecture_Master
-                WHERE schedule_id = ?
-                  AND CAST(lecture_datetime AS DATE) = ?
+                WHERE schedule_id = %s
+                  AND CAST(lecture_datetime AS DATE) = %s
             """, (schedule_id, str(today)))
             if cursor.fetchone():
                 continue  # already created today
@@ -260,7 +260,7 @@ async def get_user_lectures(
                   (user_id, school, department, lecorlab, panel, lec_name, course_code,
                    lecture_datetime, attendance_status,
                    year, specialisation, schedule_id)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'N', ?, ?, ?)
+                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, 'N', %s, %s, %s)
             """, (
                 user_id, teacher_school, teacher_dept,
                 lecorlab, panel, lec_name, course_code,
@@ -274,7 +274,7 @@ async def get_user_lectures(
             SELECT lec_id, lec_name, panel, lecture_datetime, attendance_status,
                    year, specialisation, course_code, lecorlab
             FROM Lecture_Master
-            WHERE user_id = ?
+            WHERE user_id = %s
             ORDER BY
                 CASE WHEN CAST(lecture_datetime AS DATE) = CAST(GETDATE() AS DATE)
                      THEN 0 ELSE 1 END,
@@ -297,7 +297,7 @@ async def get_user_lectures(
 
     except HTTPException:
         raise
-    except pyodbc.Error as e:
+    except pymssql.Error as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Database error while retrieving lectures: {str(e)}"
@@ -332,8 +332,8 @@ async def get_today_lectures(
             SELECT lec_id, lec_name, panel, lecture_datetime, attendance_status,
                    year, specialisation, course_code, lecorlab
             FROM Lecture_Master
-            WHERE user_id = ?
-              AND CAST(lecture_datetime AS DATE) = ?
+            WHERE user_id = %s
+              AND CAST(lecture_datetime AS DATE) = %s
             ORDER BY lecture_datetime ASC
         """
         results = execute_query(query, (user_id, str(today)), fetch=True)
@@ -369,7 +369,7 @@ async def get_user_schedules(
                    year, specialisation, panel, day_of_week, start_time,
                    sem_start_date, sem_end_date, is_active
             FROM Lecture_Schedule
-            WHERE user_id = ? AND is_active = 1
+            WHERE user_id = %s AND is_active = 1
             ORDER BY day_of_week, start_time
         """
         results = execute_query(query, (user_id,), fetch=True)
@@ -411,13 +411,13 @@ async def get_enrolled_students(
     Retrieve all enrolled students for a given lecture based on year, specialisation, and panel.
     """
     try:
-        query_lec = "SELECT year, specialisation, panel FROM Lecture_Master WHERE lec_id = ?"
+        query_lec = "SELECT year, specialisation, panel FROM Lecture_Master WHERE lec_id = %s"
         lec_result = execute_query(query_lec, (lec_id,), fetch=True)
         if not lec_result or len(lec_result) == 0:
             raise HTTPException(status_code=404, detail="Lecture not found")
         lec = lec_result[0]
         
-        query_stu = "SELECT prn, name, rollno FROM Student_Master WHERE year = ? AND specialisation = ? AND panel = ?"
+        query_stu = "SELECT prn, name, rollno FROM Student_Master WHERE year = %s AND specialisation = %s AND panel = %s"
         students = execute_query(query_stu, (lec.year, lec.specialisation, lec.panel), fetch=True)
         
         if not students:
@@ -458,15 +458,15 @@ async def get_attendance_records(
             FROM Attendance_Record ar
             JOIN Student_Master sm ON ar.prn = sm.prn
             JOIN Lecture_Master lm ON ar.lec_id = lm.lec_id
-            WHERE ar.lec_id = ?
+            WHERE ar.lec_id = %s
         """
         params = [lec_id]
 
         if date_from:
-            query += " AND lm.lecture_datetime >= ?"
+            query += " AND lm.lecture_datetime >= %s"
             params.append(date_from)
         if date_to:
-            query += " AND lm.lecture_datetime <= ?"
+            query += " AND lm.lecture_datetime <= %s"
             params.append(date_to + " 23:59:59")
 
         query += " ORDER BY lm.lecture_datetime DESC, sm.rollno ASC"
@@ -544,7 +544,7 @@ async def mark_attendance(
         query = """
             SELECT lec_id, user_id, panel, attendance_status
             FROM Lecture_Master
-            WHERE lec_id = ?
+            WHERE lec_id = %s
         """
         
         results = execute_query(query, (request.lec_id,), fetch=True)
@@ -574,7 +574,7 @@ async def mark_attendance(
         
         # Optional: Update lecture datetime if overridden by teacher
         if request.lecture_datetime:
-            update_dt_query = "UPDATE Lecture_Master SET lecture_datetime = ? WHERE lec_id = ?"
+            update_dt_query = "UPDATE Lecture_Master SET lecture_datetime = %s WHERE lec_id = %s"
             execute_query(update_dt_query, (request.lecture_datetime, request.lec_id), fetch=False)
         
         # Step 2: Get inference engine instance
@@ -620,7 +620,7 @@ async def mark_attendance(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail=f"Validation error: {str(e)}"
         )
-    except pyodbc.Error as e:
+    except pymssql.Error as e:
         # Handle database errors
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
@@ -689,7 +689,7 @@ async def resolve_faces(
         query = """
             SELECT lec_id, user_id, panel
             FROM Lecture_Master
-            WHERE lec_id = ?
+            WHERE lec_id = %s
         """
         
         results = execute_query(query, (request.lec_id,), fetch=True)
@@ -757,7 +757,7 @@ async def resolve_faces(
             # Handle "existing" action
             if action == "existing":
                 # Verify PRN exists in Student_Master
-                query = "SELECT prn, panel FROM Student_Master WHERE prn = ?"
+                query = "SELECT prn, panel FROM Student_Master WHERE prn = %s"
                 results = execute_query(query, (prn,), fetch=True)
                 
                 if not results or len(results) == 0:
@@ -771,12 +771,12 @@ async def resolve_faces(
                 
                 # Insert into Attendance_Record (skip if already marked)
                 existing_record = execute_query(
-                    "SELECT 1 FROM Attendance_Record WHERE lec_id = ? AND prn = ?",
+                    "SELECT 1 FROM Attendance_Record WHERE lec_id = %s AND prn = %s",
                     (request.lec_id, prn), fetch=True
                 )
                 if not existing_record:
                     execute_query(
-                        "INSERT INTO Attendance_Record (lec_id, prn, status) VALUES (?, ?, 'Present')",
+                        "INSERT INTO Attendance_Record (lec_id, prn, status) VALUES (%s, %s, 'Present')",
                         (request.lec_id, prn), fetch=False
                     )
                 
@@ -807,7 +807,7 @@ async def resolve_faces(
                 panel = resolution.panel
                 
                 # Check if PRN already exists
-                query = "SELECT prn FROM Student_Master WHERE prn = ?"
+                query = "SELECT prn FROM Student_Master WHERE prn = %s"
                 results = execute_query(query, (prn,), fetch=True)
                 
                 if results and len(results) > 0:
@@ -819,7 +819,7 @@ async def resolve_faces(
                 # Insert new student into Student_Master
                 insert_student_query = """
                     INSERT INTO Student_Master (prn, name, year, course, specialisation, rollno, panel)
-                    VALUES (?, ?, ?, ?, ?, ?, ?)
+                    VALUES (%s, %s, %s, %s, %s, %s, %s)
                 """
                 execute_query(insert_student_query, (
                     prn, 
@@ -833,12 +833,12 @@ async def resolve_faces(
                 
                 # Insert into Attendance_Record (skip if already marked)
                 existing_record = execute_query(
-                    "SELECT 1 FROM Attendance_Record WHERE lec_id = ? AND prn = ?",
+                    "SELECT 1 FROM Attendance_Record WHERE lec_id = %s AND prn = %s",
                     (request.lec_id, prn), fetch=True
                 )
                 if not existing_record:
                     execute_query(
-                        "INSERT INTO Attendance_Record (lec_id, prn, status) VALUES (?, ?, 'Present')",
+                        "INSERT INTO Attendance_Record (lec_id, prn, status) VALUES (%s, %s, 'Present')",
                         (request.lec_id, prn), fetch=False
                     )
                 
@@ -865,7 +865,7 @@ async def resolve_faces(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail=f"Validation error: {str(e)}"
         )
-    except pyodbc.Error as e:
+    except pymssql.Error as e:
         # Handle database errors
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
@@ -924,7 +924,7 @@ async def finalize_attendance(
         query = """
             SELECT lec_id, user_id, attendance_status
             FROM Lecture_Master
-            WHERE lec_id = ?
+            WHERE lec_id = %s
         """
         
         results = execute_query(query, (request.lec_id,), fetch=True)
@@ -949,13 +949,13 @@ async def finalize_attendance(
         for prn in request.identified_prns:
             # Check if already recorded (e.g. from resolve-faces)
             existing = execute_query(
-                "SELECT 1 FROM Attendance_Record WHERE lec_id = ? AND prn = ?",
+                "SELECT 1 FROM Attendance_Record WHERE lec_id = %s AND prn = %s",
                 (request.lec_id, prn),
                 fetch=True
             )
             if not existing:
                 execute_query(
-                    "INSERT INTO Attendance_Record (lec_id, prn, status) VALUES (?, ?, 'Present')",
+                    "INSERT INTO Attendance_Record (lec_id, prn, status) VALUES (%s, %s, 'Present')",
                     (request.lec_id, prn),
                     fetch=False
                 )
@@ -964,7 +964,7 @@ async def finalize_attendance(
         update_query = """
             UPDATE Lecture_Master
             SET attendance_status = 'Y'
-            WHERE lec_id = ?
+            WHERE lec_id = %s
         """
         execute_query(update_query, (request.lec_id,), fetch=False)
         
@@ -986,7 +986,7 @@ async def finalize_attendance(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail=f"Validation error: {str(e)}"
         )
-    except pyodbc.Error as e:
+    except pymssql.Error as e:
         # Handle database errors
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
@@ -1015,7 +1015,7 @@ async def get_user_profile(
                    u.name, u.email_id, u.school, u.department
             FROM Login_Master l
             JOIN User_Master u ON l.user_id = u.user_id
-            WHERE l.user_id = ?
+            WHERE l.user_id = %s
         """
         results = execute_query(query, (user_id,), fetch=True)
         if not results:
@@ -1052,7 +1052,7 @@ async def download_csv(
     try:
         # Verify lecture belongs to this user
         results = execute_query(
-            "SELECT user_id FROM Lecture_Master WHERE lec_id = ?",
+            "SELECT user_id FROM Lecture_Master WHERE lec_id = %s",
             (lec_id,), fetch=True
         )
         if not results:
@@ -1088,14 +1088,14 @@ async def request_privilege(
     """
     try:
         existing = execute_query(
-            "SELECT request_id FROM Request_Master WHERE user_id = ?",
+            "SELECT request_id FROM Request_Master WHERE user_id = %s",
             (user_id,), fetch=True
         )
         if existing:
             return {"message": "Privilege request already submitted"}
 
         execute_query(
-            "INSERT INTO Request_Master (user_id) VALUES (?)",
+            "INSERT INTO Request_Master (user_id) VALUES (%s)",
             (user_id,), fetch=False
         )
         return {"message": "Privilege request submitted successfully"}

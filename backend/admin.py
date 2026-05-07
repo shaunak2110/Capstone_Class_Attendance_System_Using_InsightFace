@@ -3,7 +3,7 @@ from pydantic import BaseModel, EmailStr
 from typing import List, Optional
 import datetime as dt
 import bcrypt
-import pyodbc
+import pymssql
 
 from database import get_db_connection, execute_query
 from services.training_service import incremental_enroll
@@ -121,21 +121,21 @@ async def create_teacher(request: CreateTeacherRequest, _: int = Depends(require
 
         password_hash = bcrypt.hashpw(request.password.encode(), bcrypt.gensalt()).decode()
 
-        cursor.execute("SELECT user_id FROM Login_Master WHERE username=?", (request.username,))
+        cursor.execute("SELECT user_id FROM Login_Master WHERE username=%s", (request.username,))
         if cursor.fetchone():
             raise HTTPException(status_code=409, detail="Username already exists")
 
         cursor.execute("""
             INSERT INTO Login_Master (username, password_hash, privilege_level)
             OUTPUT INSERTED.user_id
-            VALUES (?, ?, 3)
+            VALUES (%s, %s, 3)
         """, (request.username, password_hash))
 
         user_id = cursor.fetchone()[0]
 
         cursor.execute("""
             INSERT INTO User_Master (user_id, name, email_id, school, department, mob)
-            VALUES (?, ?, ?, ?, ?, ?)
+            VALUES (%s, %s, %s, %s, %s, %s)
         """, (user_id, request.name, request.email_id, request.school, request.department, request.mob))
 
         connection.commit()
@@ -174,7 +174,7 @@ async def schedule_lecture(request: ScheduleLectureRequest, _: int = Depends(req
             if not request.username:
                 raise HTTPException(status_code=400, detail="Either user_id or username must be provided")
             cursor.execute(
-                "SELECT l.user_id, u.school, u.department FROM Login_Master l JOIN User_Master u ON l.user_id = u.user_id WHERE l.username = ?",
+                "SELECT l.user_id, u.school, u.department FROM Login_Master l JOIN User_Master u ON l.user_id = u.user_id WHERE l.username = %s",
                 (request.username,)
             )
             row = cursor.fetchone()
@@ -192,7 +192,7 @@ async def schedule_lecture(request: ScheduleLectureRequest, _: int = Depends(req
             INSERT INTO Lecture_Master
             (user_id, school, department, year, specialisation, lecorlab, panel, lec_name, course_code, lecture_datetime, attendance_status)
             OUTPUT INSERTED.lec_id
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'N')
+            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, 'N')
         """, (
             resolved_user_id,
             school,
@@ -242,14 +242,14 @@ async def enroll_student(request: EnrollStudentRequest, _: int = Depends(require
         cursor = connection.cursor()
 
         # Check if student exists
-        cursor.execute("SELECT prn FROM Student_Master WHERE prn=?", (request.prn,))
+        cursor.execute("SELECT prn FROM Student_Master WHERE prn=%s", (request.prn,))
         existing = cursor.fetchone()
 
         if existing:
             cursor.execute("""
                 UPDATE Student_Master
-                SET name=?, year=?, course=?, specialisation=?, rollno=?, panel=?
-                WHERE prn=?
+                SET name=%s, year=%s, course=%s, specialisation=%s, rollno=%s, panel=%s
+                WHERE prn=%s
             """, (
                 request.name,
                 request.year,
@@ -262,7 +262,7 @@ async def enroll_student(request: EnrollStudentRequest, _: int = Depends(require
         else:
             cursor.execute("""
                 INSERT INTO Student_Master (prn, name, year, course, specialisation, rollno, panel)
-                VALUES (?, ?, ?, ?, ?, ?, ?)
+                VALUES (%s, %s, %s, %s, %s, %s, %s)
             """, (
                 request.prn,
                 request.name,
@@ -276,7 +276,7 @@ async def enroll_student(request: EnrollStudentRequest, _: int = Depends(require
         connection.commit()
 
         # Remove old embeddings
-        cursor.execute("DELETE FROM Student_Embeddings WHERE prn=?", (request.prn,))
+        cursor.execute("DELETE FROM Student_Embeddings WHERE prn=%s", (request.prn,))
         connection.commit()
 
         # Add new embeddings
@@ -371,22 +371,22 @@ async def get_attendance_analytics(
         lec_params = []
 
         if year:
-            lec_conditions.append("lm.year = ?")
+            lec_conditions.append("lm.year = %s")
             lec_params.append(year)
         if course_code:
-            lec_conditions.append("lm.course_code = ?")
+            lec_conditions.append("lm.course_code = %s")
             lec_params.append(course_code)
         if panel:
-            lec_conditions.append("lm.panel = ?")
+            lec_conditions.append("lm.panel = %s")
             lec_params.append(panel)
         if username:
-            lec_conditions.append("l.username = ?")
+            lec_conditions.append("l.username = %s")
             lec_params.append(username)
         if start_date:
-            lec_conditions.append("lm.lecture_datetime >= ?")
+            lec_conditions.append("lm.lecture_datetime >= %s")
             lec_params.append(start_date)
         if end_date:
-            lec_conditions.append("lm.lecture_datetime <= ?")
+            lec_conditions.append("lm.lecture_datetime <= %s")
             lec_params.append(end_date + " 23:59:59")
 
         where_clause = " AND ".join(lec_conditions)
@@ -415,7 +415,7 @@ async def get_attendance_analytics(
 
         # Get all students in the panel
         student_rows = execute_query(
-            "SELECT prn, name FROM Student_Master WHERE panel = ? ORDER BY name",
+            "SELECT prn, name FROM Student_Master WHERE panel = %s ORDER BY name",
             (resolved_panel,), fetch=True
         )
 
@@ -429,7 +429,7 @@ async def get_attendance_analytics(
             }
 
         # Count present per student across matched lectures
-        placeholders = ",".join(["?" for _ in lec_ids])
+        placeholders = ",".join(["%s" for _ in lec_ids])
         attendance_rows = execute_query(f"""
             SELECT prn, COUNT(*) as present_count
             FROM Attendance_Record
@@ -491,7 +491,7 @@ async def create_schedule(
 
         # Resolve username → user_id
         cursor.execute(
-            "SELECT user_id FROM Login_Master WHERE username = ?",
+            "SELECT user_id FROM Login_Master WHERE username = %s",
             (request.username,)
         )
         row = cursor.fetchone()
@@ -524,7 +524,7 @@ async def create_schedule(
                   (user_id, lec_name, course_code, lecorlab, year, specialisation,
                    panel, day_of_week, start_time, sem_start_date, sem_end_date, is_active)
                 OUTPUT INSERTED.schedule_id
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1)
+                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, 1)
             """, (
                 user_id,
                 request.lec_name,
@@ -620,7 +620,7 @@ async def delete_schedule(
         connection = get_db_connection()
         cursor = connection.cursor()
         cursor.execute(
-            "UPDATE Lecture_Schedule SET is_active = 0 WHERE schedule_id = ?",
+            "UPDATE Lecture_Schedule SET is_active = 0 WHERE schedule_id = %s",
             (schedule_id,)
         )
         if cursor.rowcount == 0:
@@ -699,7 +699,7 @@ async def unenroll_student(
         cursor = connection.cursor()
 
         # Verify student exists
-        cursor.execute("SELECT prn, name FROM Student_Master WHERE prn = ?", (prn,))
+        cursor.execute("SELECT prn, name FROM Student_Master WHERE prn = %s", (prn,))
         row = cursor.fetchone()
         if not row:
             raise HTTPException(status_code=404, detail=f"Student with PRN '{prn}' not found")
@@ -707,15 +707,15 @@ async def unenroll_student(
         student_name = row[1]
 
         # Delete embeddings
-        cursor.execute("DELETE FROM Student_Embeddings WHERE prn = ?", (prn,))
+        cursor.execute("DELETE FROM Student_Embeddings WHERE prn = %s", (prn,))
         embeddings_deleted = cursor.rowcount
 
         # Delete attendance records
-        cursor.execute("DELETE FROM Attendance_Record WHERE prn = ?", (prn,))
+        cursor.execute("DELETE FROM Attendance_Record WHERE prn = %s", (prn,))
         records_deleted = cursor.rowcount
 
         # Delete student
-        cursor.execute("DELETE FROM Student_Master WHERE prn = ?", (prn,))
+        cursor.execute("DELETE FROM Student_Master WHERE prn = %s", (prn,))
 
         connection.commit()
 
