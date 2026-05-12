@@ -6,7 +6,7 @@ import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { UploadCloud, Activity, Users, BookOpen, Camera, X, FileText, ChevronDown, Download, CheckCircle, XCircle } from 'lucide-react';
+import { UploadCloud, Activity, Users, BookOpen, Camera, X, FileText, ChevronDown, Download, CheckCircle, XCircle, SwitchCamera } from 'lucide-react';
 import { getLectures, markAttendance, getAttendanceRecords, getTodayLectures } from '@/services/api';
 
 export default function Dashboard() {
@@ -35,6 +35,8 @@ export default function Dashboard() {
   const canvasRef = useRef(null);
   const [isCameraOpen, setIsCameraOpen] = useState(false);
   const [stream, setStream] = useState(null);
+  const [facingMode, setFacingMode] = useState('environment');
+  const [hasMultipleCameras, setHasMultipleCameras] = useState(false);
 
   const role = localStorage.getItem('privilege_level');
   const userName = localStorage.getItem('username') || 'User';
@@ -82,11 +84,28 @@ export default function Dashboard() {
     });
   }, []);
 
+  const getStreamWithFacing = async (mode) => {
+    try {
+      return await navigator.mediaDevices.getUserMedia({
+        video: { facingMode: { ideal: mode } }
+      });
+    } catch {
+      return await navigator.mediaDevices.getUserMedia({ video: true });
+    }
+  };
+
   const startCamera = async () => {
     try {
-      const mediaStream = await navigator.mediaDevices.getUserMedia({ video: true });
+      const mediaStream = await getStreamWithFacing(facingMode);
       setStream(mediaStream);
       setIsCameraOpen(true);
+      try {
+        const devices = await navigator.mediaDevices.enumerateDevices();
+        const videoInputs = devices.filter(d => d.kind === 'videoinput');
+        setHasMultipleCameras(videoInputs.length > 1);
+      } catch {
+        setHasMultipleCameras(false);
+      }
     } catch (err) {
       setError("Unable to access camera: " + err.message);
     }
@@ -98,6 +117,18 @@ export default function Dashboard() {
       setStream(null);
     }
     setIsCameraOpen(false);
+  };
+
+  const switchCamera = async () => {
+    const nextMode = facingMode === 'environment' ? 'user' : 'environment';
+    if (stream) stream.getTracks().forEach(track => track.stop());
+    try {
+      const mediaStream = await getStreamWithFacing(nextMode);
+      setStream(mediaStream);
+      setFacingMode(nextMode);
+    } catch (err) {
+      setError("Unable to switch camera: " + err.message);
+    }
   };
 
   const captureImage = () => {
@@ -420,6 +451,16 @@ export default function Dashboard() {
                   <Button type="button" onClick={captureImage} className="absolute bottom-4 left-1/2 -translate-x-1/2 bg-purple-600 hover:bg-purple-500 text-slate-900 dark:text-white rounded-full px-8 shadow-[0_0_20px_rgba(168,85,247,0.4)] border border-purple-400/50">
                     <Camera className="mr-2 h-4 w-4" /> Snap Photo
                   </Button>
+                  {hasMultipleCameras && (
+                    <Button
+                      type="button"
+                      onClick={switchCamera}
+                      title={`Switch to ${facingMode === 'environment' ? 'front' : 'back'} camera`}
+                      className="absolute bottom-4 right-4 bg-slate-900/70 hover:bg-slate-900/90 text-white rounded-full h-11 w-11 p-0 shadow-lg border border-white/20 backdrop-blur-sm"
+                    >
+                      <SwitchCamera className="h-5 w-5" />
+                    </Button>
+                  )}
                 </div>
               )}
 
